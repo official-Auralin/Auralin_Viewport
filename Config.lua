@@ -19,8 +19,9 @@ end
 
 -- Update the displayed top value when the slider value changes
 AuralinVP.topSlider:SetScript("OnValueChanged", function(self, value)
-    value = max(0, min(value, UIParent:GetHeight()/2)) -- Ensure value is within valid range
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    local screenWidth, screenHeight = GetPhysicalScreenSize()
+    value = max(0, min(value, screenHeight / 2))
+    value = math.floor(value + 0.5)
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then
@@ -33,7 +34,8 @@ end)
 
 -- Update the displayed left value when the slider value changes
 AuralinVP.leftSlider:SetScript("OnValueChanged", function(self, value)  
-    value = max(0, min(value, UIParent:GetWidth()/2)) -- Ensure value is within valid range
+    local screenWidth, screenHeight = GetPhysicalScreenSize()
+    value = max(0, min(value, screenWidth / 2))
     value = math.floor(value + 0.5) -- Round value to nearest integer
     self.value:SetText(value)
 
@@ -48,7 +50,8 @@ end)
 
 -- Update the displayed right value when the slider value changes
 AuralinVP.rightSlider:SetScript("OnValueChanged", function(self, value)
-    value = max(0, min(value, UIParent:GetWidth()/2)) -- Ensure value is within valid range
+    local screenWidth, screenHeight = GetPhysicalScreenSize()
+    value = max(0, min(value, screenWidth / 2)) -- Ensure value is within valid range
     value = math.floor(value + 0.5) -- Round value to nearest integer
     self.value:SetText(value)
 
@@ -63,7 +66,8 @@ end)
 
 -- Update the displayed bottom value when the slider value changes
 AuralinVP.bottomSlider:SetScript("OnValueChanged", function(self, value)
-    value = max(0, min(value, UIParent:GetHeight()/2)) -- Ensure value is within valid range
+    local screenWidth, screenHeight = GetPhysicalScreenSize()
+    value = max(0, min(value, screenHeight / 2)) -- Ensure value is within valid range
     value = math.floor(value + 0.5) -- Round value to nearest integer
     self.value:SetText(value)
 

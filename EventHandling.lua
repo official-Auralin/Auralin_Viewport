@@ -3,15 +3,15 @@ local addonName, AuralinVP = ...
 local eventFrame = CreateFrame("Frame")
 
 function UpdateWorldFrame()
-    local bottom = Auralin_Viewport_Settings.bottom or 112
-    local top = Auralin_Viewport_Settings.top or 0
-    local left = Auralin_Viewport_Settings.left or 0
-    local right = Auralin_Viewport_Settings.right or 0
+    local bottom    = Auralin_Viewport_Settings.bottom or 112
+    local top       = Auralin_Viewport_Settings.top or 0
+    local left      = Auralin_Viewport_Settings.left or 0
+    local right     = Auralin_Viewport_Settings.right or 0
 
     -- Adjust the WorldFrame's size and position
     WorldFrame:ClearAllPoints()
-    WorldFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left, -top)
-    WorldFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -right, bottom)
+    WorldFrame:SetPoint("TOPLEFT", nil, "TOPLEFT", left, -top)
+    WorldFrame:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", -right, bottom)
 
     -- Ensure the dummy frames reflect these offsets
     if AuralinVP.dummyFrames then
