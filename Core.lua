@@ -2,7 +2,109 @@ local addonName, AuralinVP = ...
 
 -- Define global variables
 AuralinVP = AuralinVP or {}
+
+function AuralinVP:DestroyDummyFrames()
+    if not self.dummyFrames then return end
+
+    for _, frame in pairs(self.dummyFrames) do
+        frame:Hide()
+        frame:SetParent(nil)
+    end
+    self.dummyFrames = nil
+end
+
+function AuralinVP:ChangesDetected()
+    if not self.dummyFrames then return false end
+
+    local current = {
+        top = self.dummyFrames.top:GetHeight(),
+        left = self.dummyFrames.left:GetWidth(),
+        right = self.dummyFrames.right:GetWidth(),
+        bottom = self.dummyFrames.bottom:GetHeight(),
+    }
+
+    local saved = Auralin_Viewport_Settings or { top = 0, left = 0, right = 0, bottom = 112 }
+
+    return current.top ~= saved.top or current.left ~= saved.left or
+        current.right ~= saved.right or current.bottom ~= saved.bottom
+end
+
+-- Function to hide dummy frames upon menu close
+function AuralinVP:OnMenuClose()
+    print("Menu closed.")
+    if self:ChangesDetected() then
+        print("Changes detected.")
+        StaticPopupDialogs["AURALIN_UNSAVED_CHANGES"] = {
+            text = "You have unsaved changes. \nSave & Reload or Cancel to discard changes.",
+            button1 = "Save & Reload",
+            button2 = "Cancel",
+            OnAccept = function()
+                Auralin_Viewport_Settings = {
+                    top = self.dummyFrames.top:GetHeight(),
+                    left = self.dummyFrames.left:GetWidth(),
+                    right = self.dummyFrames.right:GetWidth(),
+                    bottom = self.dummyFrames.bottom:GetHeight(),
+                }
+                ReloadUI()
+            end,
+            OnCancel = function()
+                -- Restore dummy frames and WorldFrame to saved settings
+                if Auralin_Viewport_Settings then
+                    local top = Auralin_Viewport_Settings.top or 0
+                    local bottom = Auralin_Viewport_Settings.bottom or 112
+                    local left = Auralin_Viewport_Settings.left or 0
+                    local right = Auralin_Viewport_Settings.right or 0
+            
+                    -- Reset dummy frames
+                    if AuralinVP.dummyFrames then
+                        AuralinVP.dummyFrames.top:ClearAllPoints()
+                        AuralinVP.dummyFrames.top:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
+                        AuralinVP.dummyFrames.top:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, 0)
+                        AuralinVP.dummyFrames.top:SetHeight(top)
+            
+                        AuralinVP.dummyFrames.bottom:ClearAllPoints()
+                        AuralinVP.dummyFrames.bottom:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+                        AuralinVP.dummyFrames.bottom:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, 0)
+                        AuralinVP.dummyFrames.bottom:SetHeight(bottom)
+            
+                        AuralinVP.dummyFrames.left:ClearAllPoints()
+                        AuralinVP.dummyFrames.left:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, -top)
+                        AuralinVP.dummyFrames.left:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, bottom)
+                        AuralinVP.dummyFrames.left:SetWidth(left)
+            
+                        AuralinVP.dummyFrames.right:ClearAllPoints()
+                        AuralinVP.dummyFrames.right:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, -top)
+                        AuralinVP.dummyFrames.right:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, bottom)
+                        AuralinVP.dummyFrames.right:SetWidth(right)
+                    end
+            
+                    -- Restore WorldFrame
+                    WorldFrame:ClearAllPoints()
+                    WorldFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left, -top)
+                    WorldFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -right, bottom)
+                end
+            
+                -- Destroy dummy frames and hide menu
+                AuralinVP:DestroyDummyFrames()
+                if AuralinVP.MainMenuFrame then
+                    AuralinVP.MainMenuFrame:Hide()
+                end
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("AURALIN_UNSAVED_CHANGES")
+    else
+        print("No changes detected.")
+        -- No changes detected; clean up
+        AuralinVP:DestroyDummyFrames()
+    end
+end
+
 AuralinVP.MainMenuFrame = CreateFrame("Frame", "MainMenuFrame", UIParent, "BasicFrameTemplateWithInset")
+AuralinVP.MainMenuFrame:SetScript("OnHide", function() AuralinVP:OnMenuClose() end)
 AuralinVP.MainMenuFrame:SetSize(300, 400)
 AuralinVP.MainMenuFrame:SetPoint("CENTER")
 AuralinVP.MainMenuFrame:Hide()
@@ -101,69 +203,4 @@ function AuralinVP:OnMenuOpen()
         frame:SetFrameStrata("BACKGROUND")
         frame:Show()
     end
-end
-
--- Function to hide dummy frames upon menu close
-function AuralinVP:OnMenuClose()
-    if AuralinVP:ChangesDetected() then
-        StaticPopupDialogs["AURALIN_UNSAVED_CHANGES"] = {
-            text = "You have unsaved changes. \nSave & Reload or Cancel to discard changes.",
-            button1 = "Save & Reload",
-            button2 = "Cancel",
-            OnAccept = function()
-                -- Save current dummy frame settings
-                Auralin_Viewport_Settings = {
-                    top = self.dummyFrames.top:GetHeight(),
-                    left = self.dummyFrames.left:GetWidth(),
-                    right = self.dummyFrames.right:GetWidth(),
-                    bottom = self.dummyFrames.bottom:GetHeight(),
-                }
-                ReloadUI()
-            end,
-            OnCancel = function()
-                AuralinVP:DestroyDummyFrames()
-                -- Then close the menu frame
-                if AuralinVP.MainMenuFrame then
-                    AuralinVP.MainMenuFrame:Hide()
-                end
-            end,
-            timeout = 0,
-            whileDead = true,
-            hideOnEscape = true,
-            preferredIndex = 3,
-        }
-        StaticPopup_Show("AURALIN_UNSAVED_CHANGES")
-
-    else
-        AuralinVP:DestroyDummyFrames()
-        if AuralinVP.MainMenuFrame then
-            AuralinVP.MainMenuFrame:Hide()
-        end
-    end
-end
-
-function AuralinVP:DestroyDummyFrames()
-    if not self.dummyFrames then return end
-
-    for _, frame in pairs(self.dummyFrames) do
-        frame:Hide()
-        frame:SetParent(nil)
-    end
-    self.dummyFrames = nil
-end
-
-function AuralinVP:ChangesDetected()
-    if not self.dummyFrames then return false end
-
-    local current = {
-        top = self.dummyFrames.top:GetHeight(),
-        left = self.dummyFrames.left:GetWidth(),
-        right = self.dummyFrames.right:GetWidth(),
-        bottom = self.dummyFrames.bottom:GetHeight(),
-    }
-
-    local saved = Auralin_Viewport_Settings or { top = 0, left = 0, right = 0, bottom = 112 }
-
-    return current.top ~= saved.top or current.left ~= saved.left or
-        current.right ~= saved.right or current.bottom ~= saved.bottom
 end

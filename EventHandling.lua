@@ -3,17 +3,25 @@ local addonName, AuralinVP = ...
 local eventFrame = CreateFrame("Frame")
 
 function UpdateWorldFrame()
-    local screenWidth, screenHeight = GetPhysicalScreenSize()
     local bottom = Auralin_Viewport_Settings.bottom or 112
     local top = Auralin_Viewport_Settings.top or 0
     local left = Auralin_Viewport_Settings.left or 0
     local right = Auralin_Viewport_Settings.right or 0
 
-    -- Set the WorldFrame to the new viewport settings
+    -- Adjust the WorldFrame's size and position
     WorldFrame:ClearAllPoints()
-    WorldFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left or 0, -(top or 0))
-    WorldFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -(right or 0), bottom or 0)
-    print("WorldFrame updated with settings: top = %d, left = %d, right = %d, bottom = %d.", top, left, right, bottom)
+    WorldFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left, -top)
+    WorldFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -right, bottom)
+
+    -- Ensure the dummy frames reflect these offsets
+    if AuralinVP.dummyFrames then
+        AuralinVP.dummyFrames.top:SetHeight(top)
+        AuralinVP.dummyFrames.bottom:SetHeight(bottom)
+        AuralinVP.dummyFrames.left:SetWidth(left)
+        AuralinVP.dummyFrames.right:SetWidth(right)
+    end
+
+    print("WorldFrame updated with settings: top =", top, ", left =", left, ", right =", right, ", bottom =", bottom, ".")
 end
 
 -- Register Events for the event frame
