@@ -1,6 +1,20 @@
 local addonName, AuralinVP = ...
 local Constants = AuralinVP.Constants
 
+-- Function to retrieve current settings
+function AuralinVP:GetCurrentSettings()
+    return {
+        top     = Auralin_Viewport_Settings and Auralin_Viewport_Settings.top or
+                (self.topSlider and self.topSlider:GetValue() or Constants.DEFAULT_TOP),
+        left    = Auralin_Viewport_Settings and Auralin_Viewport_Settings.left or 
+                (self.leftSlider and self.leftSlider:GetValue() or Constants.DEFAULT_LEFT),
+        right   = Auralin_Viewport_Settings and Auralin_Viewport_Settings.right or
+                (self.rightSlider and self.rightSlider:GetValue() or Constants.DEFAULT_RIGHT),
+        bottom  = Auralin_Viewport_Settings and Auralin_Viewport_Settings.bottom or 
+                (self.bottomSlider and self.bottomSlider:GetValue() or Constants.DEFAULT_BOTTOM),
+    }
+end
+
 function UpdateSlidersWithCurrentSettings()
     if Auralin_Viewport_Settings == nil then
         Auralin_Viewport_Settings = { 

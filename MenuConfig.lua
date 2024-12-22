@@ -1,6 +1,27 @@
 local addonName, AuralinVP = ...
 local Constants = AuralinVP.Constants
 
+local function CreateSlider(sliderName, parent, anchorPoint, labelText, minVal, maxVal, step)
+    local slider = CreateFrame("Slider", sliderName, parent, "OptionsSliderTemplate")
+    slider:SetPoint(unpack(anchorPoint))
+    slider:SetMinMaxValues(minVal, maxVal)
+    slider:SetValueStep(step)
+    slider:SetObeyStepOnDrag(true)
+
+    local fsLabel = parent:CreateFontString(nil, "OVERLAY")
+    fsLabel:SetPoint("LEFT", slider, "LEFT", 0, 15)
+    fsLabel:SetFontObject("GameFontHighlight")
+    fsLabel:SetText(labelText)
+    slider.label = fsLabel
+
+    local fsValue = slider:CreateFontString(nil, "OVERLAY")
+    fsValue:SetPoint("BOTTOM", slider, "TOP", 0, 0)
+    fsValue:SetFontObject("GameFontHighlight")
+    slider.value = fsValue
+
+    return slider
+end
+
 -- Add background texture (if necessary)
 local texture = AuralinVP.MainMenuFrame:CreateTexture(nil, "BACKGROUND")
 texture:SetAllPoints(AuralinVP.MainMenuFrame)
@@ -22,13 +43,64 @@ usageLabel:SetJustifyH("LEFT")
 usageLabel:SetJustifyV("TOP")
 usageLabel:SetText("|cffdc143cWarning:|r This add-on adjusts the size of the\nframe the used by the game client to render\nthe game-world. To avoid the client from\ncrashing you are recommended to\n'Save & Reload' after every change.")
 
+-- Function to create dummy frames
+function AuralinVP:CreateDummyFrames()
+    if self.dummyFrames then return end -- prevent self duplication
+    local screenWidth, screenHeight
+
+    local settings = AuralinVP:GetCurrentSettings()
+
+    self.dummyFrames = {
+        left = CreateFrame("Frame", "leftDummyFrame", nil),
+        right = CreateFrame("Frame", "rightDummyFrame", nil),
+        top = CreateFrame("Frame", "topDummyFrame", nil),
+        bottom = CreateFrame("Frame", "bottomDummyFrame", nil),
+    }
+    -- Set positions and sizes based on current settings
+    self.dummyFrames.left:ClearAllPoints()
+    self.dummyFrames.left:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, -(settings.top or 0))
+    self.dummyFrames.left:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, (settings.bottom or 0))
+    self.dummyFrames.left:SetWidth(settings.left or Constants.DEFAULT_LEFT)
+
+    self.dummyFrames.right:ClearAllPoints()
+    self.dummyFrames.right:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, -(settings.top or 0))
+    self.dummyFrames.right:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, (settings.bottom or 0))
+    self.dummyFrames.right:SetWidth(settings.right or Constants.DEFAULT_RIGHT)
+
+    self.dummyFrames.top:ClearAllPoints()
+    self.dummyFrames.top:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, 0)
+    self.dummyFrames.top:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, 0)
+    self.dummyFrames.top:SetHeight(settings.top or Constants.DEFAULT_TOP)
+
+    self.dummyFrames.bottom:ClearAllPoints()
+    self.dummyFrames.bottom:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, 0)
+    self.dummyFrames.bottom:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, 0)
+    self.dummyFrames.bottom:SetHeight(settings.bottom or Constants.DEFAULT_BOTTOM)
+
+    -- Hide the frames initially
+    for _, frame in pairs(self.dummyFrames) do
+        frame:Hide()
+        end
+    end
+
+-- Function to create dummy frames upon menu open
+function AuralinVP:OnMenuOpen()
+    self:CreateDummyFrames()
+    for _, frame in pairs(self.dummyFrames) do
+        -- Add a backdrop using a texture
+        local backdrop = frame:CreateTexture(nil, "BACKGROUND")
+        backdrop:SetAllPoints(frame)
+        backdrop:SetColorTexture(1, 0, 0, 0.5) -- Semi-transparent red
+        frame.backdrop = backdrop -- Store the backdrop for later use
+
+        frame:SetFrameStrata("BACKGROUND")
+        frame:Show()
+    end
+end
+
 -- Create a slider for top
-AuralinVP.topSlider = CreateFrame("Slider", "TopSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
-AuralinVP.topSlider:SetPoint("LEFT", usageLabel, "BOTTOMLEFT", 0, -35)
-AuralinVP.topSlider:SetWidth(200)
-AuralinVP.topSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
-AuralinVP.topSlider:SetValueStep(1)
-AuralinVP.topSlider:SetObeyStepOnDrag(true)
+AuralinVP.topSlider = CreateSlider("TopSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", usageLabel, "BOTTOMLEFT", 0, -35}, "Top", 0, Constants.MAX_SLIDER_VALUE, 1)
 AuralinVP.topSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenHeight / 2))
@@ -66,12 +138,8 @@ topEditBox:SetScript("OnEnterPressed", function(self)
 end)
 
 -- Create a slider for left
-AuralinVP.leftSlider = CreateFrame("Slider", "LeftSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
-AuralinVP.leftSlider:SetPoint("LEFT", AuralinVP.topSlider, "BOTTOMLEFT", 0, -50)
-AuralinVP.leftSlider:SetWidth(200)
-AuralinVP.leftSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
-AuralinVP.leftSlider:SetValueStep(1)
-AuralinVP.leftSlider:SetObeyStepOnDrag(true)
+AuralinVP.leftSlider = CreateSlider("LeftSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", usageLabel, "BOTTOMLEFT", 0, -80}, "Left", 0, Constants.MAX_SLIDER_VALUE, 1)
 AuralinVP.leftSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenWidth / 2))
@@ -109,12 +177,8 @@ leftEditBox:SetScript("OnEnterPressed", function(self)
 end)
 
 -- Create a slider for right
-AuralinVP.rightSlider = CreateFrame("Slider", "RightSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
-AuralinVP.rightSlider:SetPoint("LEFT", AuralinVP.leftSlider, "BOTTOMLEFT", 0, -50)
-AuralinVP.rightSlider:SetWidth(200)
-AuralinVP.rightSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
-AuralinVP.rightSlider:SetValueStep(1)
-AuralinVP.rightSlider:SetObeyStepOnDrag(true)
+AuralinVP.rightSlider = CreateSlider("RightSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", AuralinVP.leftSlider, "BOTTOMLEFT", 0, -50}, "Right", 0, Constants.MAX_SLIDER_VALUE, 1)
 AuralinVP.rightSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenWidth / 2)) -- Ensure value is within valid range
@@ -153,12 +217,8 @@ rightEditBox:SetScript("OnEnterPressed", function(self)
 end)
 
 -- Create a slider for bottom
-AuralinVP.bottomSlider = CreateFrame("Slider", "BottomSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
-AuralinVP.bottomSlider:SetPoint("LEFT", AuralinVP.rightSlider, "BOTTOMLEFT", 0, -50)
-AuralinVP.bottomSlider:SetWidth(200)
-AuralinVP.bottomSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
-AuralinVP.bottomSlider:SetValueStep(1)
-AuralinVP.bottomSlider:SetObeyStepOnDrag(true)
+AuralinVP.bottomSlider = CreateSlider("BottomSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", AuralinVP.rightSlider, "BOTTOMLEFT", 0, -50}, "Bottom", 0, Constants.MAX_SLIDER_VALUE, 1)
 AuralinVP.bottomSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenHeight / 2)) -- Ensure value is within valid range

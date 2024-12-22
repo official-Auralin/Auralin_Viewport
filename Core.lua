@@ -11,6 +11,28 @@ AuralinVP.Constants = {
 local Constants = AuralinVP.Constants
 AuralinVP = AuralinVP or {}
 
+function AuralinVP:ResetDummyFrame(frame, points, size)
+    frame:ClearAllPoints()
+    for _, point in ipairs(points) do
+        frame:SetPoint(unpack(point))
+    end
+    if size.width then
+        frame:SetWidth(size.width)
+    elseif size.height then
+        frame:SetHeight(size.height)
+    end
+end
+
+function AuralinVP:RestoreWorldFrame(left, top, right, bottom)
+    WorldFrame:ClearAllPoints()
+    WorldFrame:SetPoint("TOPLEFT", nil, "TOPLEFT", left, -top)
+    WorldFrame:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", -right, bottom)
+end
+
+function AuralinVP:GetSettingOrDefault(key)
+    return Auralin_Viewport_Settings and Auralin_Viewport_Settings[key] or Constants["DEFAULT_" .. key:upper()]
+end
+
 function AuralinVP:DestroyDummyFrames()
     if not self.dummyFrames then return end
 
@@ -22,7 +44,7 @@ function AuralinVP:DestroyDummyFrames()
 end
 
 function AuralinVP:ChangesDetected()
-    if not self.dummyFrames then return false end
+    if not self.dummyFrames or not Auralin_Viewport_Settings then return false end
 
     local current = {
         top     = self.dummyFrames.top:GetHeight(),
@@ -51,52 +73,41 @@ function AuralinVP:OnMenuClose()
             button2     = "Cancel",
             OnAccept    = function()
                 Auralin_Viewport_Settings = {
-                    top     = math.floor(self.dummyFrames.top:GetHeight()       + 0.5),
-                    left    = math.floor(self.dummyFrames.left:GetWidth()       + 0.5),
-                    right   = math.floor(self.dummyFrames.right:GetWidth()      + 0.5),
-                    bottom  = math.floor(self.dummyFrames.bottom:GetHeight()    + 0.5),
+                    top     = math.floor(self.dummyFrames.top:GetHeight()       + Constants.ROUNDING_THRESHOLD),
+                    left    = math.floor(self.dummyFrames.left:GetWidth()       + Constants.ROUNDING_THRESHOLD),
+                    right   = math.floor(self.dummyFrames.right:GetWidth()      + Constants.ROUNDING_THRESHOLD),
+                    bottom  = math.floor(self.dummyFrames.bottom:GetHeight()    + Constants.ROUNDING_THRESHOLD),
                 }
                 ReloadUI()
             end,
-            OnCancel = function()
-                -- Restore dummy frames and WorldFrame to saved settings
-                if Auralin_Viewport_Settings then
-                    local top       = Auralin_Viewport_Settings.top     or Constants.DEFAULT_TOP
-                    local bottom    = Auralin_Viewport_Settings.bottom  or Constants.DEFAULT_BOTTOM
-                    local left      = Auralin_Viewport_Settings.left    or Constants.DEFAULT_LEFT
-                    local right     = Auralin_Viewport_Settings.right   or Constants.DEFAULT_RIGHT
-            
-                    -- Reset dummy frames
-                    if AuralinVP.dummyFrames then
-                        AuralinVP.dummyFrames.top:ClearAllPoints()
-                        AuralinVP.dummyFrames.top:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, 0)
-                        AuralinVP.dummyFrames.top:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, 0)
-                        AuralinVP.dummyFrames.top:SetHeight(top)
-            
-                        AuralinVP.dummyFrames.bottom:ClearAllPoints()
-                        AuralinVP.dummyFrames.bottom:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, 0)
-                        AuralinVP.dummyFrames.bottom:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, 0)
-                        AuralinVP.dummyFrames.bottom:SetHeight(bottom)
-            
-                        AuralinVP.dummyFrames.left:ClearAllPoints()
-                        AuralinVP.dummyFrames.left:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, -top)
-                        AuralinVP.dummyFrames.left:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, bottom)
-                        AuralinVP.dummyFrames.left:SetWidth(left)
-            
-                        AuralinVP.dummyFrames.right:ClearAllPoints()
-                        AuralinVP.dummyFrames.right:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, -top)
-                        AuralinVP.dummyFrames.right:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, bottom)
-                        AuralinVP.dummyFrames.right:SetWidth(right)
-                    end
-            
-                    -- Restore WorldFrame
-                    WorldFrame:ClearAllPoints()
-                    WorldFrame:SetPoint("TOPLEFT", nil, "TOPLEFT", left, -top)
-                    WorldFrame:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", -right, bottom)
+            OnCancel       = function()
+                local top    = Auralin_Viewport_Settings.top or Constants.DEFAULT_TOP
+                local bottom = Auralin_Viewport_Settings.bottom or Constants.DEFAULT_BOTTOM
+                local left   = Auralin_Viewport_Settings.left or Constants.DEFAULT_LEFT
+                local right  = Auralin_Viewport_Settings.right or Constants.DEFAULT_RIGHT
+
+                -- Reset dummy frames
+                if AuralinVP.dummyFrames then
+                    self:ResetDummyFrame(AuralinVP.dummyFrames.top, {
+                        { "TOPLEFT", nil, "TOPLEFT", 0, 0 },
+                        { "TOPRIGHT", nil, "TOPRIGHT", 0, 0 },
+                    }, { height = top })
+                    self:ResetDummyFrame(AuralinVP.dummyFrames.bottom, {
+                        { "BOTTOMLEFT", nil, "BOTTOMLEFT", 0, 0 },
+                        { "BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, 0 },
+                    }, { height = bottom })
+                    self:ResetDummyFrame(AuralinVP.dummyFrames.left, {
+                        { "TOPLEFT", nil, "TOPLEFT", 0, -top },
+                        { "BOTTOMLEFT", nil, "BOTTOMLEFT", 0, bottom },
+                    }, { width = left })
+                    self:ResetDummyFrame(AuralinVP.dummyFrames.right, {
+                        { "TOPRIGHT", nil, "TOPRIGHT", 0, -top },
+                        { "BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, bottom },
+                    }, { width = right })
                 end
-            
-                -- Destroy dummy frames and hide menu
-                AuralinVP:DestroyDummyFrames()
+
+                self:RestoreWorldFrame(left, top, right, bottom)
+                self:DestroyDummyFrames()
                 if AuralinVP.MainMenuFrame then
                     AuralinVP.MainMenuFrame:Hide()
                 end
@@ -109,7 +120,7 @@ function AuralinVP:OnMenuClose()
         StaticPopup_Show("AURALIN_UNSAVED_CHANGES")
     else
         -- No changes detected; clean up
-        AuralinVP:DestroyDummyFrames()
+        self:DestroyDummyFrames()
     end
 end
 
@@ -128,11 +139,6 @@ AuralinVP.MainMenuFrame.title:SetText("Auralin Viewport")
 function AuralinVP:InitializeMenu()
     local frame = self.MainMenuFrame
 
-    -- Create sliders, buttons, and labels here
-    self.topSlider = CreateFrame("Slider", "TopSliderName", frame, "OptionsSliderTemplate")
-    self.topSlider:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -50)
-    self.topSlider:SetMinMaxValues(0, 500)
-    self.topSlider:SetValueStep(1)
 
     -- Add Save & Reload button
     local button = CreateFrame("Button", "SaveButtonName", frame, "UIPanelButtonTemplate")
@@ -158,68 +164,3 @@ AuralinVP:InitializeMenu()
 
 AuralinVP.topSlider, AuralinVP.leftSlider, AuralinVP.rightSlider, AuralinVP.bottomSlider = nil, nil, nil, nil
 AuralinVP.dummyFrames = nil -- Store references to dummy frames
-
--- Function to create dummy frames
-function AuralinVP:CreateDummyFrames()
-    if self.dummyFrames then return end -- prevent self duplication
-    local screenWidth, screenHeight
-
-    local settings = AuralinVP:GetCurrentSettings()
-
-    self.dummyFrames = {
-        left = CreateFrame("Frame", "leftDummyFrame", nil),
-        right = CreateFrame("Frame", "rightDummyFrame", nil),
-        top = CreateFrame("Frame", "topDummyFrame", nil),
-        bottom = CreateFrame("Frame", "bottomDummyFrame", nil),
-    }
-    -- Set positions and sizes based on current settings
-    self.dummyFrames.left:ClearAllPoints()
-    self.dummyFrames.left:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, -(settings.top or 0))
-    self.dummyFrames.left:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, (settings.bottom or 0))
-    self.dummyFrames.left:SetWidth(settings.left or Constants.DEFAULT_LEFT)
-
-    self.dummyFrames.right:ClearAllPoints()
-    self.dummyFrames.right:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, -(settings.top or 0))
-    self.dummyFrames.right:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, (settings.bottom or 0))
-    self.dummyFrames.right:SetWidth(settings.right or Constants.DEFAULT_RIGHT)
-
-    self.dummyFrames.top:ClearAllPoints()
-    self.dummyFrames.top:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, 0)
-    self.dummyFrames.top:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, 0)
-    self.dummyFrames.top:SetHeight(settings.top or Constants.DEFAULT_TOP)
-
-    self.dummyFrames.bottom:ClearAllPoints()
-    self.dummyFrames.bottom:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, 0)
-    self.dummyFrames.bottom:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, 0)
-    self.dummyFrames.bottom:SetHeight(settings.bottom or Constants.DEFAULT_BOTTOM)
-
-    -- Hide the frames initially
-    for _, frame in pairs(self.dummyFrames) do
-        frame:Hide()
-        end
-    end
-
--- Function to retrieve current settings
-function AuralinVP:GetCurrentSettings()
-    return {
-        top     = self.topSlider and self.topSlider:GetValue() or Constants.DEFAULT_TOP,
-        left    = self.leftSlider and self.leftSlider:GetValue() or Constants.DEFAULT_LEFT,
-        right   = self.rightSlider and self.rightSlider:GetValue() or Constants.DEFAULT_RIGHT,
-        bottom  = self.bottomSlider and self.bottomSlider:GetValue() or Constants.DEFAULT_BOTTOM,
-    }
-end
-
--- Function to create dummy frames upon menu open
-function AuralinVP:OnMenuOpen()
-    self:CreateDummyFrames()
-    for _, frame in pairs(self.dummyFrames) do
-        -- Add a backdrop using a texture
-        local backdrop = frame:CreateTexture(nil, "BACKGROUND")
-        backdrop:SetAllPoints(frame)
-        backdrop:SetColorTexture(1, 0, 0, 0.5) -- Semi-transparent black
-        frame.backdrop = backdrop -- Store the backdrop for later use
-
-        frame:SetFrameStrata("BACKGROUND")
-        frame:Show()
-    end
-end
