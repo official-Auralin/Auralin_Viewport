@@ -24,7 +24,7 @@ AuralinVP.topSlider:SetScript("OnValueChanged", function(self, value)
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then
-        AuralinVP.CreateDummyFrames()
+        AuralinVP:CreateDummyFrames()
     end
     if AuralinVP.dummyFrames and AuralinVP.dummyFrames.top then
         AuralinVP.dummyFrames.top:SetHeight(value)
@@ -38,7 +38,7 @@ AuralinVP.leftSlider:SetScript("OnValueChanged", function(self, value)
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then
-        AuralinVP.CreateDummyFrames()
+        AuralinVP:CreateDummyFrames()
     end
 
     if AuralinVP.dummyFrames and AuralinVP.dummyFrames.left then
@@ -53,7 +53,7 @@ AuralinVP.rightSlider:SetScript("OnValueChanged", function(self, value)
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then
-        AuralinVP.CreateDummyFrames()
+        AuralinVP:CreateDummyFrames()
     end 
 
     if AuralinVP.dummyFrames and AuralinVP.dummyFrames.right then
@@ -68,7 +68,7 @@ AuralinVP.bottomSlider:SetScript("OnValueChanged", function(self, value)
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then
-        AuralinVP.CreateDummyFrames()
+        AuralinVP:CreateDummyFrames()
     end
 
     if AuralinVP.dummyFrames and AuralinVP.dummyFrames.bottom then
