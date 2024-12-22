@@ -1,12 +1,13 @@
 local addonName, AuralinVP = ...
+local Constants = AuralinVP.Constants
 
 local eventFrame = CreateFrame("Frame")
 
 function UpdateWorldFrame()
-    local bottom    = Auralin_Viewport_Settings.bottom or 112
-    local top       = Auralin_Viewport_Settings.top or 0
-    local left      = Auralin_Viewport_Settings.left or 0
-    local right     = Auralin_Viewport_Settings.right or 0
+    local bottom    = Auralin_Viewport_Settings.bottom  or Constants.DEFAULT_BOTTOM
+    local top       = Auralin_Viewport_Settings.top     or Constants.DEFAULT_TOP
+    local left      = Auralin_Viewport_Settings.left    or Constants.DEFAULT_LEFT
+    local right     = Auralin_Viewport_Settings.right   or Constants.DEFAULT_RIGHT
 
     -- Adjust the WorldFrame's size and position
     WorldFrame:ClearAllPoints()
@@ -20,8 +21,6 @@ function UpdateWorldFrame()
         AuralinVP.dummyFrames.left:SetWidth(left)
         AuralinVP.dummyFrames.right:SetWidth(right)
     end
-
-    print("WorldFrame updated with settings: top =", top, ", left =", left, ", right =", right, ", bottom =", bottom, ".")
 end
 
 -- Register Events for the event frame

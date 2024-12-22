@@ -1,4 +1,5 @@
 local addonName, AuralinVP = ...
+local Constants = AuralinVP.Constants
 
 -- Add background texture (if necessary)
 local texture = AuralinVP.MainMenuFrame:CreateTexture(nil, "BACKGROUND")
@@ -25,13 +26,13 @@ usageLabel:SetText("|cffdc143cWarning:|r This add-on adjusts the size of the\nfr
 AuralinVP.topSlider = CreateFrame("Slider", "TopSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
 AuralinVP.topSlider:SetPoint("LEFT", usageLabel, "BOTTOMLEFT", 0, -35)
 AuralinVP.topSlider:SetWidth(200)
-AuralinVP.topSlider:SetMinMaxValues(0, 500)
+AuralinVP.topSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
 AuralinVP.topSlider:SetValueStep(1)
 AuralinVP.topSlider:SetObeyStepOnDrag(true)
 AuralinVP.topSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenHeight / 2))
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
     self.value:SetText(value)
     if not AuralinVP.dummyFrames then
         AuralinVP:CreateDummyFrames()
@@ -68,13 +69,13 @@ end)
 AuralinVP.leftSlider = CreateFrame("Slider", "LeftSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
 AuralinVP.leftSlider:SetPoint("LEFT", AuralinVP.topSlider, "BOTTOMLEFT", 0, -50)
 AuralinVP.leftSlider:SetWidth(200)
-AuralinVP.leftSlider:SetMinMaxValues(0, 500)
+AuralinVP.leftSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
 AuralinVP.leftSlider:SetValueStep(1)
 AuralinVP.leftSlider:SetObeyStepOnDrag(true)
 AuralinVP.leftSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenWidth / 2))
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
     self.value:SetText(value)
     if not AuralinVP.dummyFrames then
         AuralinVP:CreateDummyFrames()
@@ -111,13 +112,13 @@ end)
 AuralinVP.rightSlider = CreateFrame("Slider", "RightSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
 AuralinVP.rightSlider:SetPoint("LEFT", AuralinVP.leftSlider, "BOTTOMLEFT", 0, -50)
 AuralinVP.rightSlider:SetWidth(200)
-AuralinVP.rightSlider:SetMinMaxValues(0, 500)
+AuralinVP.rightSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
 AuralinVP.rightSlider:SetValueStep(1)
 AuralinVP.rightSlider:SetObeyStepOnDrag(true)
 AuralinVP.rightSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenWidth / 2)) -- Ensure value is within valid range
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
     self.value:SetText(value)
     if not AuralinVP.dummyFrames then
         AuralinVP:CreateDummyFrames()
@@ -155,13 +156,13 @@ end)
 AuralinVP.bottomSlider = CreateFrame("Slider", "BottomSliderName", AuralinVP.MainMenuFrame, "OptionsSliderTemplate")
 AuralinVP.bottomSlider:SetPoint("LEFT", AuralinVP.rightSlider, "BOTTOMLEFT", 0, -50)
 AuralinVP.bottomSlider:SetWidth(200)
-AuralinVP.bottomSlider:SetMinMaxValues(0, 500)
+AuralinVP.bottomSlider:SetMinMaxValues(0, Constants.MAX_SLIDER_VALUE)
 AuralinVP.bottomSlider:SetValueStep(1)
 AuralinVP.bottomSlider:SetObeyStepOnDrag(true)
 AuralinVP.bottomSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenHeight / 2)) -- Ensure value is within valid range
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
     self.value:SetText(value)
     if not AuralinVP.dummyFrames then
         AuralinVP:CreateDummyFrames()
@@ -204,10 +205,6 @@ button:SetScript("OnClick", function()
             right   = math.floor(AuralinVP.dummyFrames.right:GetWidth()     + 0.5),
             bottom  = math.floor(AuralinVP.dummyFrames.bottom:GetHeight()   + 0.5),
         }
-        print("Auralin Viewport settings saved.", Auralin_Viewport_Settings.top,
-            Auralin_Viewport_Settings.left,
-            Auralin_Viewport_Settings.right,
-            Auralin_Viewport_Settings.bottom)
     else -- if dummy frames don't exists, fall back to existing settings or defaults
         print("Error: Dummy frames not initialized.")
     end

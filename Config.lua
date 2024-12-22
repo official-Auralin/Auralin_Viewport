@@ -1,8 +1,14 @@
 local addonName, AuralinVP = ...
+local Constants = AuralinVP.Constants
 
 function UpdateSlidersWithCurrentSettings()
     if Auralin_Viewport_Settings == nil then
-        Auralin_Viewport_Settings = { bottom = 112, top = 0, left = 0, right = 0 }
+        Auralin_Viewport_Settings = { 
+            bottom  = Constants.DEFAULT_BOTTOM, 
+            top     = Constants.DEFAULT_TOP, 
+            left    = Constants.DEFAULT_LEFT, 
+            right   = Constants.DEFAULT_RIGHT 
+        }
     end
     -- Set the slider values to those in ViewPort
     AuralinVP.topSlider:SetValue(Auralin_Viewport_Settings.top)
@@ -36,7 +42,7 @@ end)
 AuralinVP.leftSlider:SetScript("OnValueChanged", function(self, value)  
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenWidth / 2))
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then
@@ -52,7 +58,7 @@ end)
 AuralinVP.rightSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenWidth / 2)) -- Ensure value is within valid range
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then
@@ -68,7 +74,7 @@ end)
 AuralinVP.bottomSlider:SetScript("OnValueChanged", function(self, value)
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     value = max(0, min(value, screenHeight / 2)) -- Ensure value is within valid range
-    value = math.floor(value + 0.5) -- Round value to nearest integer
+    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
     self.value:SetText(value)
 
     if not AuralinVP.dummyFrames then

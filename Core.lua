@@ -1,6 +1,14 @@
 local addonName, AuralinVP = ...
 
--- Define global variables
+AuralinVP.Constants = {
+    DEFAULT_TOP = 0,
+    DEFAULT_BOTTOM = 112,
+    DEFAULT_LEFT = 0,
+    DEFAULT_RIGHT = 0,
+    ROUNDING_THRESHOLD = 0.5,
+    MAX_SLIDER_VALUE = 500,
+}
+local Constants = AuralinVP.Constants
 AuralinVP = AuralinVP or {}
 
 function AuralinVP:DestroyDummyFrames()
@@ -23,7 +31,12 @@ function AuralinVP:ChangesDetected()
         bottom  = self.dummyFrames.bottom:GetHeight(),
     }
 
-    local saved = Auralin_Viewport_Settings or { top = 0, left = 0, right = 0, bottom = 112 }
+    local saved = Auralin_Viewport_Settings or { 
+        top     = Constants.DEFAULT_TOP, 
+        left    = Constants.DEFAULT_LEFT, 
+        right   = Constants.DEFAULT_RIGHT, 
+        bottom  = Constants.DEFAULT_BOTTOM
+    }
 
     return current.top ~= saved.top or current.left ~= saved.left or
         current.right ~= saved.right or current.bottom ~= saved.bottom
@@ -31,9 +44,7 @@ end
 
 -- Function to hide dummy frames upon menu close
 function AuralinVP:OnMenuClose()
-    print("Menu closed.")
     if self:ChangesDetected() then
-        print("Changes detected.")
         StaticPopupDialogs["AURALIN_UNSAVED_CHANGES"] = {
             text        = "You have unsaved changes. \nSave & Reload or Cancel to discard changes.",
             button1     = "Save & Reload",
@@ -50,10 +61,10 @@ function AuralinVP:OnMenuClose()
             OnCancel = function()
                 -- Restore dummy frames and WorldFrame to saved settings
                 if Auralin_Viewport_Settings then
-                    local top       = Auralin_Viewport_Settings.top or 0
-                    local bottom    = Auralin_Viewport_Settings.bottom or 112
-                    local left      = Auralin_Viewport_Settings.left or 0
-                    local right     = Auralin_Viewport_Settings.right or 0
+                    local top       = Auralin_Viewport_Settings.top     or Constants.DEFAULT_TOP
+                    local bottom    = Auralin_Viewport_Settings.bottom  or Constants.DEFAULT_BOTTOM
+                    local left      = Auralin_Viewport_Settings.left    or Constants.DEFAULT_LEFT
+                    local right     = Auralin_Viewport_Settings.right   or Constants.DEFAULT_RIGHT
             
                     -- Reset dummy frames
                     if AuralinVP.dummyFrames then
@@ -97,7 +108,6 @@ function AuralinVP:OnMenuClose()
         }
         StaticPopup_Show("AURALIN_UNSAVED_CHANGES")
     else
-        print("No changes detected.")
         -- No changes detected; clean up
         AuralinVP:DestroyDummyFrames()
     end
@@ -166,22 +176,22 @@ function AuralinVP:CreateDummyFrames()
     self.dummyFrames.left:ClearAllPoints()
     self.dummyFrames.left:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, -(settings.top or 0))
     self.dummyFrames.left:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, (settings.bottom or 0))
-    self.dummyFrames.left:SetWidth(settings.left or 0)
+    self.dummyFrames.left:SetWidth(settings.left or Constants.DEFAULT_LEFT)
 
     self.dummyFrames.right:ClearAllPoints()
     self.dummyFrames.right:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, -(settings.top or 0))
     self.dummyFrames.right:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, (settings.bottom or 0))
-    self.dummyFrames.right:SetWidth(settings.right or 0)
+    self.dummyFrames.right:SetWidth(settings.right or Constants.DEFAULT_RIGHT)
 
     self.dummyFrames.top:ClearAllPoints()
     self.dummyFrames.top:SetPoint("TOPLEFT", nil, "TOPLEFT", 0, 0)
     self.dummyFrames.top:SetPoint("TOPRIGHT", nil, "TOPRIGHT", 0, 0)
-    self.dummyFrames.top:SetHeight(settings.top or 0)
+    self.dummyFrames.top:SetHeight(settings.top or Constants.DEFAULT_TOP)
 
     self.dummyFrames.bottom:ClearAllPoints()
     self.dummyFrames.bottom:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", 0, 0)
     self.dummyFrames.bottom:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", 0, 0)
-    self.dummyFrames.bottom:SetHeight(settings.bottom or 112)
+    self.dummyFrames.bottom:SetHeight(settings.bottom or Constants.DEFAULT_BOTTOM)
 
     -- Hide the frames initially
     for _, frame in pairs(self.dummyFrames) do
@@ -192,10 +202,10 @@ function AuralinVP:CreateDummyFrames()
 -- Function to retrieve current settings
 function AuralinVP:GetCurrentSettings()
     return {
-        top     = self.topSlider and self.topSlider:GetValue() or 0,
-        left    = self.leftSlider and self.leftSlider:GetValue() or 0,
-        right   = self.rightSlider and self.rightSlider:GetValue() or 0,
-        bottom  = self.bottomSlider and self.bottomSlider:GetValue() or 112,
+        top     = self.topSlider and self.topSlider:GetValue() or Constants.DEFAULT_TOP,
+        left    = self.leftSlider and self.leftSlider:GetValue() or Constants.DEFAULT_LEFT,
+        right   = self.rightSlider and self.rightSlider:GetValue() or Constants.DEFAULT_RIGHT,
+        bottom  = self.bottomSlider and self.bottomSlider:GetValue() or Constants.DEFAULT_BOTTOM,
     }
 end
 
@@ -206,7 +216,7 @@ function AuralinVP:OnMenuOpen()
         -- Add a backdrop using a texture
         local backdrop = frame:CreateTexture(nil, "BACKGROUND")
         backdrop:SetAllPoints(frame)
-        backdrop:SetColorTexture(0, 0, 0, 0.5) -- Semi-transparent black
+        backdrop:SetColorTexture(1, 0, 0, 0.5) -- Semi-transparent black
         frame.backdrop = backdrop -- Store the backdrop for later use
 
         frame:SetFrameStrata("BACKGROUND")
