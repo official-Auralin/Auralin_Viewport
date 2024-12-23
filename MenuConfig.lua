@@ -1,12 +1,13 @@
 local addonName, AuralinVP = ...
 local Constants = AuralinVP.Constants
 
-local function CreateSlider(sliderName, parent, anchorPoint, labelText, minVal, maxVal, step)
+local function CreateSlider(sliderName, parent, anchorPoint, labelText, minVal, maxVal, step, length)
     local slider = CreateFrame("Slider", sliderName, parent, "OptionsSliderTemplate")
     slider:SetPoint(unpack(anchorPoint))
     slider:SetMinMaxValues(minVal, maxVal)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
+    slider:SetWidth(length or Constants.DEFAULT_SLIDER_LENGTH)
 
     local fsLabel = parent:CreateFontString(nil, "OVERLAY")
     fsLabel:SetPoint("LEFT", slider, "LEFT", 0, 15)
@@ -20,6 +21,43 @@ local function CreateSlider(sliderName, parent, anchorPoint, labelText, minVal, 
     slider.value = fsValue
 
     return slider
+end
+
+local function CreateViewportSlider(
+    sliderName, parent, anchorPoint, labelText, minVal, maxVal, step, length,
+    dimensionSetter, isVertical)
+    local slider = CreateSlider(sliderName, parent, anchorPoint, labelText, minVal, maxVal, step, length)
+    slider:SetScript("OnValueChanged", function(self, rawValue)
+        local screenWidth, screenHeight = GetPhysicalScreenSize()
+        local clampDim = isVertical and screenHeight or screenWidth
+        local clampedValue = max(0, min(rawValue, clampDim / 2))
+        local finalValue = math.floor(clampedValue + Constants.ROUNDING_THRESHOLD)
+        self.value:SetText(finalValue)
+        if not AuralinVP.dummyFrames then
+            AuralinVP:CreateDummyFrames()
+        end
+        if AuralinVP.dummyFrames then
+            dimensionSetter(AuralinVP.dummyFrames, finalValue)
+        end
+    end)
+    return slider
+end
+
+local function CreateSliderInput(editBoxName, parent, anchorTo, sliderTable)
+    local editBox = CreateFrame("EditBox", editBoxName, parent, "InputBoxTemplate")
+    editBox:SetSize(50, 20)
+    editBox:SetPoint("LEFT", anchorTo, "RIGHT", 10, 0)
+    editBox:SetAutoFocus(false)
+    editBox:SetMaxLetters(5)
+    editBox:SetNumeric(true)
+    editBox:SetScript("OnEnterPressed", function(self)
+        local value = tonumber(self:GetText())
+        if value then
+            sliderTable:SetValue(value)
+        end
+        self:ClearFocus()
+    end)
+    return editBox
 end
 
 -- Add background texture (if necessary)
@@ -41,7 +79,7 @@ usageLabel:SetPoint("TOP", AuralinVP.MainMenuFrame, "TOP", 0, -35)
 usageLabel:SetFontObject("GameFontHighlight")
 usageLabel:SetJustifyH("LEFT")
 usageLabel:SetJustifyV("TOP")
-usageLabel:SetText("|cffdc143cWarning:|r This add-on adjusts the size of the\nframe the used by the game client to render\nthe game-world. To avoid the client from\ncrashing you are recommended to\n'Save & Reload' after every change.")
+usageLabel:SetText("This add-on adjusts the size of the frame\nused by the game client to render the\ngame-world. For changes to take place\nyou must 'Save & Reload'.")
 
 -- Function to create dummy frames
 function AuralinVP:CreateDummyFrames()
@@ -99,171 +137,44 @@ function AuralinVP:OnMenuOpen()
 end
 
 -- Create a slider for top
-AuralinVP.topSlider = CreateSlider("TopSliderName", AuralinVP.MainMenuFrame, 
-    {"LEFT", usageLabel, "BOTTOMLEFT", 0, -35}, "Top", 0, Constants.MAX_SLIDER_VALUE, 1)
-AuralinVP.topSlider:SetScript("OnValueChanged", function(self, value)
-    local screenWidth, screenHeight = GetPhysicalScreenSize()
-    value = max(0, min(value, screenHeight / 2))
-    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
-    self.value:SetText(value)
-    if not AuralinVP.dummyFrames then
-        AuralinVP:CreateDummyFrames()
-    end
-    if AuralinVP.dummyFrames and AuralinVP.dummyFrames.top then
-        AuralinVP.dummyFrames.top:SetHeight(value)
-    end
-end)
--- Create a label for the top slider
-local topLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
-topLabel:SetPoint("LEFT", AuralinVP.topSlider, "LEFT", 0, 15)
-topLabel:SetFontObject("GameFontHighlight")
-topLabel:SetText("Top")
--- Create a FontString for the top slider's value
-AuralinVP.topSlider.value = AuralinVP.topSlider:CreateFontString(nil, "OVERLAY")
-AuralinVP.topSlider.value:SetPoint("BOTTOM", AuralinVP.topSlider, "TOP", 0, 0)
-AuralinVP.topSlider.value:SetFontObject("GameFontHighlight")
+AuralinVP.topSlider = CreateViewportSlider("TopSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", usageLabel, "BOTTOMLEFT", 0, -35}, "Top", 0, Constants.MAX_SLIDER_VALUE, 1, Constants.DEFAULT_SLIDER_LENGTH,
+    function(dFrames, val) dFrames.top:SetHeight(val) end, true)
 -- Create a text input box for top
-local topEditBox = CreateFrame("EditBox", "TopEditBoxName", AuralinVP.MainMenuFrame, "InputBoxTemplate")
-topEditBox:SetSize(50, 20)
-topEditBox:SetPoint("LEFT", AuralinVP.topSlider, "RIGHT", 10, 0)
-topEditBox:SetAutoFocus(false)
-topEditBox:SetMaxLetters(5)
-topEditBox:SetNumeric(true)
-topEditBox:SetScript("OnEnterPressed", function(self)
-    local value = tonumber(self:GetText())
-    if value then
-        AuralinVP.topSlider:SetValue(value)
-    end
-    self:ClearFocus()
-end)
+local topEditBox = CreateSliderInput("TopEditBoxName", AuralinVP.MainMenuFrame, AuralinVP.topSlider, AuralinVP.topSlider)
 
 -- Create a slider for left
-AuralinVP.leftSlider = CreateSlider("LeftSliderName", AuralinVP.MainMenuFrame, 
-    {"LEFT", usageLabel, "BOTTOMLEFT", 0, -80}, "Left", 0, Constants.MAX_SLIDER_VALUE, 1)
-AuralinVP.leftSlider:SetScript("OnValueChanged", function(self, value)
-    local screenWidth, screenHeight = GetPhysicalScreenSize()
-    value = max(0, min(value, screenWidth / 2))
-    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
-    self.value:SetText(value)
-    if not AuralinVP.dummyFrames then
-        AuralinVP:CreateDummyFrames()
-    end
-    if AuralinVP.dummyFrames and AuralinVP.dummyFrames.left then
-        AuralinVP.dummyFrames.left:SetWidth(value)
-    end
-end)
--- Create a label for the left slider
-local leftLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
-leftLabel:SetPoint("LEFT", AuralinVP.leftSlider, "LEFT", 0, 15)
-leftLabel:SetFontObject("GameFontHighlight")
-leftLabel:SetText("Left")
--- Create a FontString for the left slider's value
-AuralinVP.leftSlider.value = AuralinVP.leftSlider:CreateFontString(nil, "OVERLAY")
-AuralinVP.leftSlider.value:SetPoint("BOTTOM", AuralinVP.leftSlider, "TOP", 0, 0)
-AuralinVP.leftSlider.value:SetFontObject("GameFontHighlight")
+AuralinVP.leftSlider = CreateViewportSlider("LeftSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", AuralinVP.topSlider, "BOTTOMLEFT", 0, -50}, "Left", 0, Constants.MAX_SLIDER_VALUE, 1, Constants.DEFAULT_SLIDER_LENGTH,
+    function(dFrames, val) dFrames.left:SetWidth(val) end, false)
 -- Create a text input box for left
-local leftEditBox = CreateFrame("EditBox", "LeftEditBoxName", AuralinVP.MainMenuFrame, "InputBoxTemplate")
-leftEditBox:SetSize(50, 20)
-leftEditBox:SetPoint("LEFT", AuralinVP.leftSlider, "RIGHT", 10, 0)
-leftEditBox:SetAutoFocus(false)
-leftEditBox:SetMaxLetters(5)
-leftEditBox:SetNumeric(true)
-leftEditBox:SetScript("OnEnterPressed", function(self)
-    local value = tonumber(self:GetText())
-    if value then
-        AuralinVP.leftSlider:SetValue(value)
-    end
-    self:ClearFocus()
-end)
+local leftEditBox = CreateSliderInput("LeftEditBoxName", AuralinVP.MainMenuFrame, AuralinVP.leftSlider, AuralinVP.leftSlider)
 
 -- Create a slider for right
-AuralinVP.rightSlider = CreateSlider("RightSliderName", AuralinVP.MainMenuFrame, 
-    {"LEFT", AuralinVP.leftSlider, "BOTTOMLEFT", 0, -50}, "Right", 0, Constants.MAX_SLIDER_VALUE, 1)
-AuralinVP.rightSlider:SetScript("OnValueChanged", function(self, value)
-    local screenWidth, screenHeight = GetPhysicalScreenSize()
-    value = max(0, min(value, screenWidth / 2)) -- Ensure value is within valid range
-    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
-    self.value:SetText(value)
-    if not AuralinVP.dummyFrames then
-        AuralinVP:CreateDummyFrames()
-    end
-    if AuralinVP.dummyFrames and AuralinVP.dummyFrames.right then
-        AuralinVP.dummyFrames.right:SetWidth(value)
-    end
-end)
--- Create a label for the right slider
-local rightLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
-rightLabel:SetPoint("LEFT", AuralinVP.rightSlider, "LEFT", 0, 15)
-rightLabel:SetFontObject("GameFontHighlight")
-rightLabel:SetText("Right")
--- Create a FontString for the right slider's value
-AuralinVP.rightSlider.value = AuralinVP.rightSlider:CreateFontString(nil, "OVERLAY")
-AuralinVP.rightSlider.value:SetPoint("BOTTOM", AuralinVP.rightSlider, "TOP", 0, 0)
-AuralinVP.rightSlider.value:SetFontObject("GameFontHighlight")
+AuralinVP.rightSlider = CreateViewportSlider("RightSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", AuralinVP.leftSlider, "BOTTOMLEFT", 0, -50}, "Right", 0, Constants.MAX_SLIDER_VALUE, 1, Constants.DEFAULT_SLIDER_LENGTH,
+    function(dFrames, val) dFrames.right:SetWidth(val) end, false)
 texture:SetColorTexture(0,0,0,1)
 -- Create a text input box for right
-local rightEditBox = CreateFrame("EditBox", "RightEditBoxName", AuralinVP.MainMenuFrame, "InputBoxTemplate")
-rightEditBox:SetSize(50, 20)
-rightEditBox:SetPoint("LEFT", AuralinVP.rightSlider, "RIGHT", 10, 0)
-rightEditBox:SetAutoFocus(false)
-rightEditBox:SetMaxLetters(5)
-rightEditBox:SetNumeric(true)
-rightEditBox:SetScript("OnEnterPressed", function(self)
-    local value = tonumber(self:GetText())
-    if value then
-        AuralinVP.rightSlider:SetValue(value)
-    end
-    self:ClearFocus()
-end)
+local rightEditBox = CreateSliderInput("RightEditBoxName", AuralinVP.MainMenuFrame, AuralinVP.rightSlider, AuralinVP.rightSlider)
 
 -- Create a slider for bottom
-AuralinVP.bottomSlider = CreateSlider("BottomSliderName", AuralinVP.MainMenuFrame, 
-    {"LEFT", AuralinVP.rightSlider, "BOTTOMLEFT", 0, -50}, "Bottom", 0, Constants.MAX_SLIDER_VALUE, 1)
-AuralinVP.bottomSlider:SetScript("OnValueChanged", function(self, value)
-    local screenWidth, screenHeight = GetPhysicalScreenSize()
-    value = max(0, min(value, screenHeight / 2)) -- Ensure value is within valid range
-    value = math.floor(value + Constants.ROUNDING_THRESHOLD) -- Round value to nearest integer
-    self.value:SetText(value)
-    if not AuralinVP.dummyFrames then
-        AuralinVP:CreateDummyFrames()
-    end
-    if AuralinVP.dummyFrames and AuralinVP.dummyFrames.bottom then
-        AuralinVP.dummyFrames.bottom:SetHeight(value)
-    end
-end)
--- Create a label for the bottom slider
-local bottomLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
-bottomLabel:SetPoint("LEFT", AuralinVP.bottomSlider, "LEFT", 0, 15)
-bottomLabel:SetFontObject("GameFontHighlight")
-bottomLabel:SetText("Bottom")
--- Create a FontString for the bottom slider's value
-AuralinVP.bottomSlider.value = AuralinVP.bottomSlider:CreateFontString(nil, "OVERLAY")
-AuralinVP.bottomSlider.value:SetPoint("BOTTOM", AuralinVP.bottomSlider, "TOP", 0, 0)
-AuralinVP.bottomSlider.value:SetFontObject("GameFontHighlight")
+AuralinVP.bottomSlider = CreateViewportSlider("BottomSliderName", AuralinVP.MainMenuFrame, 
+    {"LEFT", AuralinVP.rightSlider, "BOTTOMLEFT", 0, -50}, "Bottom", 0, Constants.MAX_SLIDER_VALUE, 1, Constants.DEFAULT_SLIDER_LENGTH,
+    function(dFrames, val) dFrames.bottom:SetHeight(val) end, true)
 -- Create a text input box for bottom
-local bottomEditBox = CreateFrame("EditBox", "BottomEditBoxName", AuralinVP.MainMenuFrame, "InputBoxTemplate")
-bottomEditBox:SetSize(50, 20)
-bottomEditBox:SetPoint("LEFT", AuralinVP.bottomSlider, "RIGHT", 10, 0)
-bottomEditBox:SetAutoFocus(false)
-bottomEditBox:SetMaxLetters(5)
-bottomEditBox:SetNumeric(true)
-bottomEditBox:SetScript("OnEnterPressed", function(self)
-    local value = tonumber(self:GetText())
-    if value then
-        AuralinVP.bottomSlider:SetValue(value)
-    end
-    self:ClearFocus()
-end)
+local bottomEditBox = CreateSliderInput("BottomEditBoxName", AuralinVP.MainMenuFrame, AuralinVP.bottomSlider, AuralinVP.bottomSlider)
+
 -- Create a button for saving and reloading UI
 button:SetSize(100, 22)
 button:SetText("Save & Reload")
 button:SetScript("OnClick", function()
     if AuralinVP.dummyFrames then -- take values from the dummy frames
         Auralin_Viewport_Settings = {
-            top     = math.floor(AuralinVP.dummyFrames.top:GetHeight()      + 0.5),
-            left    = math.floor(AuralinVP.dummyFrames.left:GetWidth()      + 0.5),
-            right   = math.floor(AuralinVP.dummyFrames.right:GetWidth()     + 0.5),
-            bottom  = math.floor(AuralinVP.dummyFrames.bottom:GetHeight()   + 0.5),
+            top     = math.floor(AuralinVP.dummyFrames.top:GetHeight()      + Constants.ROUNDING_THRESHOLD),
+            left    = math.floor(AuralinVP.dummyFrames.left:GetWidth()      + Constants.ROUNDING_THRESHOLD),
+            right   = math.floor(AuralinVP.dummyFrames.right:GetWidth()     + Constants.ROUNDING_THRESHOLD),
+            bottom  = math.floor(AuralinVP.dummyFrames.bottom:GetHeight()   + Constants.ROUNDING_THRESHOLD),
         }
     else -- if dummy frames don't exists, fall back to existing settings or defaults
         print("Error: Dummy frames not initialized.")

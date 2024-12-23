@@ -7,6 +7,7 @@ AuralinVP.Constants = {
     DEFAULT_RIGHT = 0,
     ROUNDING_THRESHOLD = 0.5,
     MAX_SLIDER_VALUE = 500,
+    DEFAULT_SLIDER_LENGTH = 200,
 }
 local Constants = AuralinVP.Constants
 AuralinVP = AuralinVP or {}
