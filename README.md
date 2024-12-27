@@ -15,8 +15,8 @@ Auralin Viewport is a World of Warcraft addon designed to enhance the gaming exp
 
 ## Usage
 - Use the slash command `/avp` to open the configuration menu.
-- Adjust the sliders to change the viewport margins.
-- Click the 'Save & Reload' button to apply changes This is recommended after every change. Due to the World Frame's aspect ratio being changed, the client will likely crash if you wait to save or make multiple changes without saving.
+- Adjust the sliders to change the viewport margins. Optionally you can use the text box for more control: you must press enter after entering a value for it to make a change. 
+- Click the 'Save & Reload' button to apply changes, if you close without saving you will be prompted to 'Save & Reload' or cancel.
 
 ## Configuration
 ### Slash Commands
@@ -36,7 +36,8 @@ This addon is released under the [MIT License](LICENSE).
 
 ## Acknowledgements
 Special thanks to the World of Warcraft addon community for their support and contributions.
-Thank you to sp00n for suggesting a fix to the WorldFrame resetting after certain cut scenes. 
+Thank you to sp00n for suggesting a fix to the WorldFrame resetting after certain cut scenes. Thank you to Numdelicious for
+helping me with WorldFrame parenting. 
 
 ## Contact
 For support or inquiries, please contact Auralin#1305 on B.net or auralin on Discord.
