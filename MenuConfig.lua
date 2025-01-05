@@ -75,11 +75,85 @@ button:SetPoint("BOTTOM", AuralinVP.MainMenuFrame, "BOTTOM", 0, 10)
 
 --Create Usage instructions
 local usageLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
-usageLabel:SetPoint("TOP", AuralinVP.MainMenuFrame, "TOP", 0, -35)
+usageLabel:SetPoint("TOP", AuralinVP.MainMenuFrame, "TOPLEFT", 155, -35)
 usageLabel:SetFontObject("GameFontHighlight")
 usageLabel:SetJustifyH("LEFT")
 usageLabel:SetJustifyV("TOP")
 usageLabel:SetText("This add-on adjusts the size of the frame\nused by the game client to render the\ngame-world. For changes to take place\nyou must 'Save & Reload'.")
+
+--@alpha@
+local verticalBar = AuralinVP.MainMenuFrame:CreateTexture(nil, "ARTWORK")
+verticalBar:SetColorTexture(0.2, 0.2, 0.2, 0.8)
+verticalBar:SetPoint("TOP", AuralinVP.MainMenuFrame, "TOP", 0, -35)
+verticalBar:SetPoint("BOTTOM", AuralinVP.MainMenuFrame, "BOTTOM", 0, 40)
+verticalBar:SetWidth(2)
+
+local profileLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
+profileLabel:SetPoint("TOPLEFT", verticalBar, "TOPRIGHT", 20, 0)
+profileLabel:SetFontObject("GameFontHighlight")
+profileLabel:SetJustifyH("LEFT")
+profileLabel:SetJustifyV("TOP")
+profileLabel:SetText("Select or create a profile for this\ncharacter: ")
+
+
+local profileDropDown = CreateFrame("Frame", "AuralinVPProfileDropDown", AuralinVP.MainMenuFrame, "UIDropDownMenuTemplate")
+profileDropDown:SetPoint("TOPLEFT", profileLabel, "BOTTOMLEFT", 0, -20)
+UIDropDownMenu_SetWidth(profileDropDown, 140)
+UIDropDownMenu_SetText(profileDropDown, "Select Profile")
+
+profileDropDown.initialize = function(self, level)
+    if not level then return end
+    local info = UIDropDownMenu_CreateInfo()
+    local profiles = AuralinVP:GetAvailableProfiles()
+    for _, pname in ipairs(profiles) do
+        info.text = pname
+        info.func = function()
+            UIDropDownMenu_SetText(profileDropDown, pname)
+            AuralinVP:SetActiveProfile(pname)
+        end
+        UIDropDownMenu_AddButton(info, level)
+    end
+    local currentProfileName = AuralinVP:GetActiveProfileName()
+    UIDropDownMenu_SetText(profileDropDown, currentProfileName)
+end
+
+local createProfileEditBox = CreateFrame("EditBox", "AuralinVP_CreateProfileEditBox", AuralinVP.MainMenuFrame, "InputBoxTemplate")
+createProfileEditBox:SetSize(100, 20)
+createProfileEditBox:SetPoint("TOPLEFT", profileDropDown, "BOTTOMLEFT", 0, -10)
+createProfileEditBox:SetAutoFocus(false)
+createProfileEditBox:SetMaxLetters(32)
+createProfileEditBox:SetNumeric(false)
+
+local createProfileButton = CreateFrame("Button", "AuralinVP_CreateProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
+createProfileButton:SetSize(80, 22)
+createProfileButton:SetPoint("LEFT", createProfileEditBox, "RIGHT", 5, 0)
+createProfileButton:SetText("Create")
+createProfileButton:SetScript("OnClick", function()
+    local newProfileName = createProfileEditBox:GetText()
+    if not newProfileName or newProfileName == "" then
+        print("Error: Profile name cannot be empty.")
+        return
+    end
+
+    if Auralin_Viewport_Profiles.profiles[newProfileName] then
+        print("Error: Profile '"..newProfileName.."' already exists.")
+        return
+    end
+    -- Option 1: start from current profile
+    local currentProfile = AuralinVP:GetActiveProfile()
+    local clone = {
+        top     = currentProfile.top,
+        left    = currentProfile.left,
+        right   = currentProfile.right,
+        bottom  = currentProfile.bottom,
+    }
+    Auralin_Viewport_Profiles.profiles[newProfileName] = clone
+    print("Created new profile '"..newProfileName.."'.")
+    -- Refresh the dropdown and set new profile active
+    AuralinVP:SetActiveProfile(newProfileName)
+    UIDropDownMenu_Refresh(profileDropDown, newProfileName)
+end)
+--@end-alpha@
 
 -- Function to create dummy frames
 function AuralinVP:CreateDummyFrames()
