@@ -68,6 +68,32 @@ function AuralinVP:GetActiveProfile()
     end
     return Auralin_Viewport_Profiles.profiles[profileName]
 end
+
+function AuralinVP:GetAvailableProfiles()
+    if not Auralin_Viewport_Profiles or not Auralin_Viewport_Profiles.profiles then
+        return {}
+    end
+    local list = {}
+    for profileName, _ in pairs(Auralin_Viewport_Profiles.profiles) do
+        table.insert(list, profileName)
+    end
+    table.sort(list)
+    return list
+end
+
+function AuralinVP:SetActiveProfile(profileName)
+    if not Auralin_Viewport_Profiles or not Auralin_Viewport_Profiles.profiles[profileName] then
+        print("AuralinVP: Cannot set active profile, does not exist: "..tostring(profileName))
+        return
+    end
+    local charKey = GetCharacterFullName()
+    Auralin_Viewport_Profiles.charSettings = Auralin_Viewport_Profiles.charSettings or {}
+    Auralin_Viewport_Profiles.charSettings[charKey] = profileName
+
+    if UpdateSlidersWithCurrentSettings then
+        UpdateSlidersWithCurrentSettings()
+    end
+end
 --@end-alpha@
 
 function AuralinVP:GetSettingOrDefault(key)
