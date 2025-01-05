@@ -30,6 +30,45 @@ function AuralinVP:RestoreWorldFrame(left, top, right, bottom)
     WorldFrame:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", -right, bottom)
 end
 
+local function GetCharacterFullName()
+    local name, realm = UnitName("player")
+    if realm == nil or realm == "" then
+        realm = GetNormalizedRealmName() or "UnknownRealm"
+    end
+    return realm .. "-" .. name
+end
+
+function AuralinVP:GetActiveProfileName()
+    if not Auralin_ViewPort_Profiles then
+        Auralin_Viewport_Profiles = {}
+    end
+    if not Auralin_Viewport_Profiles.charSettings then
+        Auralin_Viewport_Profiles.charSettings = {}
+    end
+    if not Auralin_Viewport_Profiles.profiles then
+        Auralin_Viewport_Profiles.profiles = {}
+    end
+    -- fallback to "Default" if something isn't set
+    local charKey = GetCharacterFullName()
+    local activeProfile = Auralin_Viewport_Profiles.charSettings[charKey] or "Default"
+    return activeProfile
+end
+
+function AuralinVP:GetActiveProfile()
+    local profileName = self:GetActiveProfileName()
+    if not Auralin_Viewport_Profiles.profiles[profileName] then
+        -- If the profile doesn't exist yet, ensure we create it or fallback
+        profileName = "Default"
+        Auralin_Viewport_Profiles.profiles[profileName] = {
+            top     = Constants.DEFAULT_TOP,
+            left    = Constants.DEFAULT_LEFT,
+            right   = Constants.DEFAULT_RIGHT,
+            bottom  = Constants.DEFAULT_BOTTOM,
+        }
+    end
+    return Auralin_Viewport_Profiles.profiles[profileName]
+end
+
 function AuralinVP:GetSettingOrDefault(key)
     return Auralin_Viewport_Settings and Auralin_Viewport_Settings[key] or Constants["DEFAULT_" .. key:upper()]
 end
