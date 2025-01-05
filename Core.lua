@@ -113,12 +113,21 @@ function AuralinVP:OnMenuClose()
             button1     = "Save & Reload",
             button2     = "Cancel",
             OnAccept    = function()
+                --[===[@non-alpha@]
                 Auralin_Viewport_Settings = {
                     top     = math.floor(self.dummyFrames.top:GetHeight()       + Constants.ROUNDING_THRESHOLD),
                     left    = math.floor(self.dummyFrames.left:GetWidth()       + Constants.ROUNDING_THRESHOLD),
                     right   = math.floor(self.dummyFrames.right:GetWidth()      + Constants.ROUNDING_THRESHOLD),
                     bottom  = math.floor(self.dummyFrames.bottom:GetHeight()    + Constants.ROUNDING_THRESHOLD),
                 }
+                --@end-non-alpha@]===]
+                --@alpha@
+                local profile = self:GetActiveProfile()
+                profile.top     = math.floor(self.dummyFrames.top:GetHeight()       + Constants.ROUNDING_THRESHOLD)
+                profile.left    = math.floor(self.dummyFrames.left:GetWidth()       + Constants.ROUNDING_THRESHOLD)
+                profile.right   = math.floor(self.dummyFrames.right:GetWidth()      + Constants.ROUNDING_THRESHOLD)
+                profile.bottom  = math.floor(self.dummyFrames.bottom:GetHeight()    + Constants.ROUNDING_THRESHOLD)
+                --@end-alpha@
                 ReloadUI()
             end,
             OnCancel       = function()
@@ -188,12 +197,21 @@ function AuralinVP:InitializeMenu()
     button:SetText("Save & Reload")
     button:SetScript("OnClick", function()
         if self.dummyFrames then
+            --[===[@non-alpha@
             Auralin_Viewport_Settings = {
                 top     = self.dummyFrames.top:GetHeight(),
                 left    = self.dummyFrames.left:GetWidth(),
                 right   = self.dummyFrames.right:GetWidth(),
                 bottom  = self.dummyFrames.bottom:GetHeight(),
             }
+            --@end-non-alpha@]===]
+            --@alpha@
+            local profile = self:GetActiveProfile()
+            profile.top     = math.floor(self.dummyFrames.top:GetHeight()      + Constants.ROUNDING_THRESHOLD)
+            profile.left    = math.floor(self.dummyFrames.left:GetWidth()      + Constants.ROUNDING_THRESHOLD)
+            profile.right   = math.floor(self.dummyFrames.right:GetWidth()     + Constants.ROUNDING_THRESHOLD)
+            profile.bottom  = math.floor(self.dummyFrames.bottom:GetHeight()   + Constants.ROUNDING_THRESHOLD)
+            --@end-alpha@
             ReloadUI()
         else
             print("Error: Dummy frames not initialized.")
