@@ -40,6 +40,32 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         if Auralin_Viewport_Settings == nil then
             Auralin_Viewport_Settings = { bottom = 112, top = 0, left = 0, right = 0 }
         end
+
+        -- Initialize Auralin_Viewport_Settings if it's nil
+        if Auralin_Viewport_Profiles == nil then
+            Auralin_Viewport_Profiles = {
+                profiles = {
+                    ["Default"] = {
+                        bottom  = Constants.DEFAULT_BOTTOM,
+                        top     = Constants.DEFAULT_TOP,
+                        left    = Constants.DEFAULT_LEFT,
+                        right   = Constants.DEFAULT_RIGHT,
+                    },
+                },
+                charSettings = {
+                    -- we might set current character after we have the name
+                },
+            }
+        elseif Auralin_Viewport_Profiles.profiles == nil then
+            Auralin_Viewport_Profiles.profiles = {
+                ["Default"] = {
+                    bottom  = Constants.DEFAULT_BOTTOM,
+                    top     = Constants.DEFAULT_TOP,
+                    left    = Constants.DEFAULT_LEFT,
+                    right   = Constants.DEFAULT_RIGHT,
+                },
+            }
+        end
         UpdateWorldFrame()
     end
 end)
