@@ -4,10 +4,20 @@ local Constants = AuralinVP.Constants
 local eventFrame = CreateFrame("Frame")
 
 function UpdateWorldFrame()
+    --[===[@non-alpha@
     local bottom    = Auralin_Viewport_Settings.bottom  or Constants.DEFAULT_BOTTOM
     local top       = Auralin_Viewport_Settings.top     or Constants.DEFAULT_TOP
     local left      = Auralin_Viewport_Settings.left    or Constants.DEFAULT_LEFT
     local right     = Auralin_Viewport_Settings.right   or Constants.DEFAULT_RIGHT
+    --@end-non-alpha@]===]
+    --@alpha@
+    local profile   = AuralinVP:GetActiveProfile()
+    
+    local top       = profile.top or Constants.DEFAULT_TOP
+    local left      = profile.left or Constants.DEFAULT_LEFT
+    local right     = profile.right or Constants.DEFAULT_RIGHT
+    local bottom    = profile.bottom or Constants.DEFAULT_BOTTOM
+    --@end-alpha@
 
     -- Adjust the WorldFrame's size and position
     WorldFrame:ClearAllPoints()
