@@ -41,6 +41,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
             Auralin_Viewport_Settings = { bottom = 112, top = 0, left = 0, right = 0 }
         end
 
+        --@alpha@
         -- Initialize Auralin_Viewport_Settings if it's nil
         if Auralin_Viewport_Profiles == nil then
             Auralin_Viewport_Profiles = {
@@ -66,6 +67,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
                 },
             }
         end
+        --@end-alpha@
         UpdateWorldFrame()
     end
 end)

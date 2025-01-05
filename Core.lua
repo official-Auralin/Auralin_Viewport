@@ -29,7 +29,7 @@ function AuralinVP:RestoreWorldFrame(left, top, right, bottom)
     WorldFrame:SetPoint("TOPLEFT", nil, "TOPLEFT", left, -top)
     WorldFrame:SetPoint("BOTTOMRIGHT", nil, "BOTTOMRIGHT", -right, bottom)
 end
-
+--@alpha@
 local function GetCharacterFullName()
     local name, realm = UnitName("player")
     if realm == nil or realm == "" then
@@ -68,6 +68,7 @@ function AuralinVP:GetActiveProfile()
     end
     return Auralin_Viewport_Profiles.profiles[profileName]
 end
+--@end-alpha@
 
 function AuralinVP:GetSettingOrDefault(key)
     return Auralin_Viewport_Settings and Auralin_Viewport_Settings[key] or Constants["DEFAULT_" .. key:upper()]
