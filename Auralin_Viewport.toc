@@ -2,7 +2,7 @@
 ## Title: Auralin_ViewPort
 ## Author: Auralin
 ## DefaultState: enabled
-## SavedVariables: Auralin_Viewport_Settings
+## SavedVariables: Auralin_Viewport_Settings, Auralin_Viewport_Profiles
 
 Core.lua
 MenuConfig.lua
