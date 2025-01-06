@@ -88,16 +88,23 @@ verticalBar:SetPoint("TOP", AuralinVP.MainMenuFrame, "TOP", 0, -35)
 verticalBar:SetPoint("BOTTOM", AuralinVP.MainMenuFrame, "BOTTOM", 0, 40)
 verticalBar:SetWidth(2)
 
-local profileLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
-profileLabel:SetPoint("TOPLEFT", verticalBar, "TOPRIGHT", 20, 0)
-profileLabel:SetFontObject("GameFontHighlight")
-profileLabel:SetJustifyH("LEFT")
-profileLabel:SetJustifyV("TOP")
-profileLabel:SetText("Select or create a profile for this\ncharacter: ")
+function AuralinVP:UpdateProfileLabel()
+    local apn = AuralinVP:GetActiveProfileName()
+    local currentProfileName = apn or "no profile assigned"
+    if self.profileLabel then
+        self.profileLabel:SetText("Select or create a profile for this\ncharacter: \n\nCurrent Profile: "..currentProfileName..".")
+    end
+end
 
+AuralinVP.profileLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
+AuralinVP.profileLabel:SetPoint("TOPLEFT", verticalBar, "TOPRIGHT", 20, 0)
+AuralinVP.profileLabel:SetFontObject("GameFontHighlight")
+AuralinVP.profileLabel:SetJustifyH("LEFT")
+AuralinVP.profileLabel:SetJustifyV("TOP")
+AuralinVP:UpdateProfileLabel()
 
 local profileDropDown = CreateFrame("Frame", "AuralinVPProfileDropDown", AuralinVP.MainMenuFrame, "UIDropDownMenuTemplate")
-profileDropDown:SetPoint("TOPLEFT", profileLabel, "BOTTOMLEFT", 0, -20)
+profileDropDown:SetPoint("TOPLEFT", AuralinVP.profileLabel, "BOTTOMLEFT", 0, -20)
 UIDropDownMenu_SetWidth(profileDropDown, 140)
 UIDropDownMenu_SetText(profileDropDown, "Select Profile")
 
@@ -110,11 +117,13 @@ profileDropDown.initialize = function(self, level)
         info.func = function()
             UIDropDownMenu_SetText(profileDropDown, pname)
             AuralinVP:SetActiveProfile(pname)
+            AuralinVP:UpdateProfileLabel()
         end
         UIDropDownMenu_AddButton(info, level)
     end
     local currentProfileName = AuralinVP:GetActiveProfileName()
     UIDropDownMenu_SetText(profileDropDown, currentProfileName)
+    AuralinVP:UpdateProfileLabel()
 end
 
 local createProfileEditBox = CreateFrame("EditBox", "AuralinVP_CreateProfileEditBox", AuralinVP.MainMenuFrame, "InputBoxTemplate")
@@ -244,12 +253,21 @@ button:SetSize(100, 22)
 button:SetText("Save & Reload")
 button:SetScript("OnClick", function()
     if AuralinVP.dummyFrames then -- take values from the dummy frames
+    --[===[@non-alpha@]
         Auralin_Viewport_Settings = {
             top     = math.floor(AuralinVP.dummyFrames.top:GetHeight()      + Constants.ROUNDING_THRESHOLD),
             left    = math.floor(AuralinVP.dummyFrames.left:GetWidth()      + Constants.ROUNDING_THRESHOLD),
             right   = math.floor(AuralinVP.dummyFrames.right:GetWidth()     + Constants.ROUNDING_THRESHOLD),
             bottom  = math.floor(AuralinVP.dummyFrames.bottom:GetHeight()   + Constants.ROUNDING_THRESHOLD),
         }
+    --@end-non-alpha@]===]
+    --@alpha@
+        local profile = AuralinVP:GetActiveProfile()
+        profile.top     = math.floor(AuralinVP.dummyFrames.top:GetHeight()      + Constants.ROUNDING_THRESHOLD)
+        profile.left    = math.floor(AuralinVP.dummyFrames.left:GetWidth()      + Constants.ROUNDING_THRESHOLD)
+        profile.right   = math.floor(AuralinVP.dummyFrames.right:GetWidth()     + Constants.ROUNDING_THRESHOLD)
+        profile.bottom  = math.floor(AuralinVP.dummyFrames.bottom:GetHeight()   + Constants.ROUNDING_THRESHOLD)
+    --@end-alpha@
     else -- if dummy frames don't exists, fall back to existing settings or defaults
         print("Error: Dummy frames not initialized.")
     end

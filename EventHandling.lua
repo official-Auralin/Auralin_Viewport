@@ -12,7 +12,7 @@ function UpdateWorldFrame()
     --@end-non-alpha@]===]
     --@alpha@
     local profile   = AuralinVP:GetActiveProfile()
-    
+
     local top       = profile.top or Constants.DEFAULT_TOP
     local left      = profile.left or Constants.DEFAULT_LEFT
     local right     = profile.right or Constants.DEFAULT_RIGHT
@@ -38,9 +38,9 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("CINEMATIC_STOP")
 
+--@alpha@
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "PLAYER_ENTERING_WORLD" then
-        -- Call a function to update the sliders.
         UpdateSlidersWithCurrentSettings()
         UpdateWorldFrame()
     elseif event == "CINEMATIC_STOP" then 
@@ -76,6 +76,19 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
                     right   = Constants.DEFAULT_RIGHT,
                 },
             }
+        end
+
+        -- One-time migration from Auralin_Viewport_Settings -> "Default" profile
+        if Auralin_Viewport_Settings and Auralin_Viewport_Settings.top then
+            if not Auralin_Viewport_Profiles.profiles["Default"] then
+                Auralin_Viewport_Profiles.profiles["Default"] = {}
+            end
+            local defaultProfile = Auralin_Viewport_Profiles.profiles["Default"]
+            defaultProfile.top      = Auralin_Viewport_Settings.top
+            defaultProfile.left     = Auralin_Viewport_Settings.left
+            defaultProfile.right    = Auralin_Viewport_Settings.right
+            defaultProfile.bottom   = Auralin_Viewport_Settings.bottom
+            print("AuralinVP: Imported old settings into the 'Default' profile.")
         end
         --@end-alpha@
         UpdateWorldFrame()

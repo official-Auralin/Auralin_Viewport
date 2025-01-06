@@ -31,15 +31,18 @@ function AuralinVP:RestoreWorldFrame(left, top, right, bottom)
 end
 --@alpha@
 local function GetCharacterFullName()
-    local name, realm = UnitName("player")
-    if realm == nil or realm == "" then
-        realm = GetNormalizedRealmName() or "UnknownRealm"
-    end
-    return realm .. "-" .. name
+   local name, realm = UnitName("player")
+   if not name then
+    return nil
+   end
+   if not realm or realm == " " then
+    realm = GetNormalizedRealmName() or "UnknownRealm"
+   end
+   return realm .. "-" .. name
 end
 
 function AuralinVP:GetActiveProfileName()
-    if not Auralin_ViewPort_Profiles then
+    if not Auralin_Viewport_Profiles then
         Auralin_Viewport_Profiles = {}
     end
     if not Auralin_Viewport_Profiles.charSettings then
@@ -50,12 +53,34 @@ function AuralinVP:GetActiveProfileName()
     end
     -- fallback to "Default" if something isn't set
     local charKey = GetCharacterFullName()
+    if not charKey then
+        return nil
+    end
+    --[===[@debug@]
     local activeProfile = Auralin_Viewport_Profiles.charSettings[charKey] or "Default"
     return activeProfile
+    --@end-debug@]===]
+    local assignedProfile = Auralin_Viewport_Profiles.charSettings[charKey]
+
+    --1) If assignedProfile is a non-nil but doesn't exist in profiles, delete it
+    if assignedProfile and not Auralin_Viewport_Profiles.profiles[assignedProfile] then
+        Auralin_Viewport_Profiles.charSettings[charKey] = nil
+        assignedProfile = nil
+    end
+    --2) If we do not have a valid assignedProfile, try to fallback to "Default" if it exists
+    if not assignedProfile then
+        if Auralin_Viewport_Profiles.profiles["Default"] then
+            Auralin_Viewport_Profiles.charSettings[charKey] = "Default"
+            assignedProfile = "Default"
+        end
+    end
+    --3) Return the final assigned Profile (could be "Default" or nil)
+    return assignedProfile
 end
 
 function AuralinVP:GetActiveProfile()
     local profileName = self:GetActiveProfileName()
+    --[===[@debug@]
     if not Auralin_Viewport_Profiles.profiles[profileName] then
         -- If the profile doesn't exist yet, ensure we create it or fallback
         profileName = "Default"
@@ -67,6 +92,18 @@ function AuralinVP:GetActiveProfile()
         }
     end
     return Auralin_Viewport_Profiles.profiles[profileName]
+    --@end-debug@]===]
+    local foundProfile = profileName and Auralin_Viewport_Profiles.profiles[profileName]
+    if foundProfile then
+        return foundProfile
+    else
+        return {
+            top     = Constants.DEFAULT_TOP,
+            left    = Constants.DEFAULT_LEFT,
+            right   = Constants.DEFAULT_RIGHT,
+            bottom  = Constants.DEFAULT_BOTTOM,
+        }
+    end
 end
 
 function AuralinVP:GetAvailableProfiles()
@@ -95,10 +132,11 @@ function AuralinVP:SetActiveProfile(profileName)
     end
 end
 --@end-alpha@
-
+--[===[@non-alpha@
 function AuralinVP:GetSettingOrDefault(key)
     return Auralin_Viewport_Settings and Auralin_Viewport_Settings[key] or Constants["DEFAULT_" .. key:upper()]
 end
+--@end-non-alpha@]===]
 
 function AuralinVP:DestroyDummyFrames()
     if not self.dummyFrames then return end
@@ -111,8 +149,8 @@ function AuralinVP:DestroyDummyFrames()
 end
 
 function AuralinVP:ChangesDetected()
+--[===[@non-alpha@
     if not self.dummyFrames or not Auralin_Viewport_Settings then return false end
-
     local current = {
         top     = self.dummyFrames.top:GetHeight(),
         left    = self.dummyFrames.left:GetWidth(),
@@ -130,6 +168,28 @@ function AuralinVP:ChangesDetected()
     return current.top ~= saved.top or current.left ~= saved.left or
         current.right ~= saved.right or current.bottom ~= saved.bottom
 end
+--@end-non-alpha@]===]
+    --@alpha@
+    if not self.dummyFrames then return false end
+    local profile = self:GetActiveProfile()
+    local saved = {
+        top     = profile.top       or Constants.DEFAULT_TOP,
+        left    = profile.left      or Constants.DEFAULT_LEFT,
+        right   = profile.right     or Constants.DEFAULT_RIGHT,
+        bottom  = profile.bottom    or Constants.DEFAULT_BOTTOM,
+    }
+    local current = {
+        top     = self.dummyFrames.top:GetHeight(),
+        left    = self.dummyFrames.left:GetWidth(),
+        right   = self.dummyFrames.right:GetWidth(),
+        bottom  = self.dummyFrames.bottom:GetHeight(),
+    }
+    return current.top ~= saved.top
+        or current.left ~= saved.left
+        or current.right ~= saved.right
+        or current.bottom ~= saved.bottom
+end
+    --@end-alpha@
 
 -- Function to hide dummy frames upon menu close
 function AuralinVP:OnMenuClose()
@@ -139,7 +199,7 @@ function AuralinVP:OnMenuClose()
             button1     = "Save & Reload",
             button2     = "Cancel",
             OnAccept    = function()
-                --[===[@non-alpha@]
+                --[===[@non-alpha@
                 Auralin_Viewport_Settings = {
                     top     = math.floor(self.dummyFrames.top:GetHeight()       + Constants.ROUNDING_THRESHOLD),
                     left    = math.floor(self.dummyFrames.left:GetWidth()       + Constants.ROUNDING_THRESHOLD),
@@ -156,12 +216,21 @@ function AuralinVP:OnMenuClose()
                 --@end-alpha@
                 ReloadUI()
             end,
+            --[===[@non-alpha@
             OnCancel       = function()
                 local top    = Auralin_Viewport_Settings.top or Constants.DEFAULT_TOP
                 local bottom = Auralin_Viewport_Settings.bottom or Constants.DEFAULT_BOTTOM
                 local left   = Auralin_Viewport_Settings.left or Constants.DEFAULT_LEFT
                 local right  = Auralin_Viewport_Settings.right or Constants.DEFAULT_RIGHT
-
+            --@end-non-alpha@]===]
+            --@alpha@
+            OnCancel       = function()
+                local profile = self:GetActiveProfile()
+                local top    = profile.top      or Constants.DEFAULT_TOP
+                local left   = profile.left     or Constants.DEFAULT_LEFT
+                local right  = profile.right    or Constants.DEFAULT_RIGHT
+                local bottom = profile.bottom   or Constants.DEFAULT_BOTTOM
+            --@end-alpha@
                 -- Reset dummy frames
                 if AuralinVP.dummyFrames then
                     self:ResetDummyFrame(AuralinVP.dummyFrames.top, {
@@ -188,6 +257,9 @@ function AuralinVP:OnMenuClose()
                     AuralinVP.MainMenuFrame:Hide()
                 end
             end,
+
+
+
             timeout         = 0,
             whileDead       = true,
             hideOnEscape    = true,
@@ -202,7 +274,7 @@ end
 
 AuralinVP.MainMenuFrame = CreateFrame("Frame", "MainMenuFrame", UIParent, "BasicFrameTemplateWithInset")
 AuralinVP.MainMenuFrame:SetScript("OnHide", function() AuralinVP:OnMenuClose() end)
-AuralinVP.MainMenuFrame:SetSize(300, 400)
+AuralinVP.MainMenuFrame:SetSize(600, 400)
 AuralinVP.MainMenuFrame:SetPoint("CENTER")
 AuralinVP.MainMenuFrame:Hide()
 
