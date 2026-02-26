@@ -8,4 +8,10 @@
 # Also include these files
 !.gitignore
 !README.md
+!RELEASING.md
 !LICENSE
+!.pkgmeta
+!.github/
+!.github/FUNDING.yml
+!.github/workflows/
+!.github/workflows/*.yml
