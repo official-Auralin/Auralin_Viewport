@@ -328,6 +328,23 @@ function AuralinVP:RefreshDummyFrameSideAnchors()
     self.dummyFrames.right:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, bottom)
 end
 
+function AuralinVP:SyncDummyFramesToSliders()
+    if not self.dummyFrames then
+        return
+    end
+
+    local top = ClampViewportValue(self.topSlider and self.topSlider:GetValue(), true)
+    local bottom = ClampViewportValue(self.bottomSlider and self.bottomSlider:GetValue(), true)
+    local left = ClampViewportValue(self.leftSlider and self.leftSlider:GetValue(), false)
+    local right = ClampViewportValue(self.rightSlider and self.rightSlider:GetValue(), false)
+
+    self.dummyFrames.top:SetHeight(top)
+    self.dummyFrames.bottom:SetHeight(bottom)
+    self.dummyFrames.left:SetWidth(left)
+    self.dummyFrames.right:SetWidth(right)
+    self:RefreshDummyFrameSideAnchors()
+end
+
 function AuralinVP:CreateDummyFrames()
     local settings = self:GetCurrentSettings()
 
@@ -376,6 +393,7 @@ end
 
 function AuralinVP:OnMenuOpen()
     local dummyFrames = self:CreateDummyFrames()
+    self:SyncDummyFramesToSliders()
     for _, frame in pairs(dummyFrames) do
         frame:Show()
     end

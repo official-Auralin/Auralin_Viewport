@@ -189,6 +189,10 @@ function AuralinVP:UpdateSlidersWithCurrentSettings()
     end
     self.isSyncingSliders = nil
 
+    if self.SyncDummyFramesToSliders then
+        self:SyncDummyFramesToSliders()
+    end
+
     --@alpha@
     if self.UpdateProfileLabel then
         self:UpdateProfileLabel()
