@@ -1,11 +1,14 @@
-## Interface: 100200
-## Title: Auralin_ViewPort
+## Interface: 120001, 120000, 110207
+## Title: Auralin Viewport
+## Notes: Adjusts the WorldFrame viewport with a visual preview.
 ## Author: Auralin
+## Version: @project-version@
+## Category: Interface Enhancements
 ## DefaultState: enabled
-## SavedVariables: Auralin_Viewport_Settings
+## SavedVariables: Auralin_Viewport_Settings, Auralin_Viewport_Profiles
 
 Core.lua
-SlashCommands.lua
 MenuConfig.lua
 Config.lua
+SlashCommands.lua
 EventHandling.lua

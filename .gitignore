@@ -1,11 +1,25 @@
+# macOS metadata sidecar files
+._*
+.DS_Store
+
 # Ignore all files
 *
 
 # Except these files types
 !*.lua
 !*.toc
+._*.lua
+._*.toc
 
 # Also include these files
 !.gitignore
 !README.md
+!RELEASING.md
 !LICENSE
+!.pkgmeta
+!tools/
+!tools/*.ps1
+!.github/
+!.github/FUNDING.yml
+!.github/workflows/
+!.github/workflows/*.yml

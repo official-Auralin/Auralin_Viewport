@@ -1,47 +1,53 @@
+local addonName, AuralinVP = ...
+
 local eventFrame = CreateFrame("Frame")
 
--- Register the PLAYER_ENTERING_WORLD event
-eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-
--- Register the ADDON_LOADED event
-eventFrame:RegisterEvent("ADDON_LOADED")
-
--- Register the CINEMATIC_STOP event
-eventFrame:RegisterEvent("CINEMATIC_STOP")
-
-eventFrame:SetScript("OnEvent", function(self, event)
-    if event == "PLAYER_ENTERING_WORLD" then
-        -- Call a function to update the sliders.
-        UpdateSlidersWithCurrentSettings()
-    elseif event == "CINEMATIC_STOP" then 
-        UpdateWorldFrame()
+function AuralinVP:ApplyViewportSettings()
+    if self.InitializePersistentData then
+        self:InitializePersistentData()
     end
-end)
 
-function UpdateWorldFrame()
-    local screenWidth, screenHeight = GetPhysicalScreenSize()
-    local bottom = ViewPort.bottom
-    local top = ViewPort.top
-    local left = ViewPort.left
-    local right = ViewPort.right
+    if not self.GetStoredSettings then
+        return
+    end
 
-    -- Set the WorldFrame to the new viewport settings
-    WorldFrame:ClearAllPoints()
-    WorldFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", left, -top)
-    WorldFrame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -right, bottom)
+    local settings = self:GetStoredSettings()
+    self:RestoreWorldFrame(settings.left, settings.top, settings.right, settings.bottom)
+
+    if self.dummyFrames then
+        self.dummyFrames.top:SetHeight(settings.top)
+        self.dummyFrames.bottom:SetHeight(settings.bottom)
+        self.dummyFrames.left:SetWidth(settings.left)
+        self.dummyFrames.right:SetWidth(settings.right)
+
+        if self.RefreshDummyFrameSideAnchors then
+            self:RefreshDummyFrameSideAnchors()
+        end
+    end
 end
 
--- Set the event handler
-eventFrame:SetScript("OnEvent", function(self, event, addonName)
-    -- When the ADDON_LOADED event fires for this addon
-    if event == "ADDON_LOADED" and addonName == "Auralin_Viewport" then
-        -- Initialize Auralin_Viewport_Settings if it's nil
-        if Auralin_Viewport_Settings == nil then
-            Auralin_Viewport_Settings = { bottom = 112, top = 0, left = 0, right = 0 }
+local function OnEvent(_, event, ...)
+    if event == "ADDON_LOADED" then
+        local loadedAddonName = ...
+        if loadedAddonName ~= addonName then
+            return
         end
 
-        -- Set ViewPort to Auralin_Viewport_Settings
-        ViewPort = Auralin_Viewport_Settings
+        AuralinVP:InitializePersistentData()
+        AuralinVP:ApplyViewportSettings()
+        return
     end
-    UpdateWorldFrame()
-end)
+
+    if event == "PLAYER_ENTERING_WORLD" then
+        AuralinVP:ApplyViewportSettings()
+    elseif event == "CINEMATIC_STOP" or event == "DISPLAY_SIZE_CHANGED" or event == "UI_SCALE_CHANGED" then
+        AuralinVP:ApplyViewportSettings()
+    end
+end
+
+eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("CINEMATIC_STOP")
+eventFrame:RegisterEvent("DISPLAY_SIZE_CHANGED")
+eventFrame:RegisterEvent("UI_SCALE_CHANGED")
+eventFrame:SetScript("OnEvent", OnEvent)

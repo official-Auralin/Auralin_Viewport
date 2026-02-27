@@ -1,10 +1,15 @@
--- Add a slash command for showing/hiding the options menu
+local addonName, AuralinVP = ...
+
 SLASH_AVP1 = "/avp"
 SlashCmdList["AVP"] = function()
-    if MainMenuFrame:IsShown() then
-        MainMenuFrame:Hide()
+    if not AuralinVP.MainMenuFrame then
+        AuralinVP:Print("Options frame is not available.")
+        return
+    end
+
+    if AuralinVP.MainMenuFrame:IsShown() then
+        AuralinVP.MainMenuFrame:Hide()
     else
-        MainMenuFrame:Show()
-        UpdateSlidersWithCurrentSettings()
+        AuralinVP.MainMenuFrame:Show()
     end
 end

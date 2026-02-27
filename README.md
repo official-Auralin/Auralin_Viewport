@@ -6,6 +6,7 @@ Auralin Viewport is a World of Warcraft addon designed to enhance the gaming exp
 ## Features
 - **Viewport Adjustment**: Easily modify the top, bottom, left, and right viewport margins.
 - **User-Friendly Interface**: A simple and intuitive menu for adjusting viewport settings.
+- **Character Profiles**: Store and switch viewport presets per character.
 - **In-Game Configuration**: Change settings on-the-fly without the need for logging out. Reloading the UI is required due to memory instability that happens when the World Frame changes. When changes are saved the UI reloads automatically.
 
 ## Installation
@@ -15,8 +16,9 @@ Auralin Viewport is a World of Warcraft addon designed to enhance the gaming exp
 
 ## Usage
 - Use the slash command `/avp` to open the configuration menu.
-- Adjust the sliders to change the viewport margins.
-- Click the 'Save & Reload' button to apply changes This is recommended after every change. Due to the World Frame's aspect ratio being changed, the client will likely crash if you wait to save or make multiple changes without saving.
+- Adjust the sliders to change the viewport margins. Optionally you can use the text box for more control: you must press enter after entering a value for it to make a change. 
+- Optionally create and select a profile to keep separate viewport settings.
+- Click the 'Save & Reload' button to apply changes, if you close without saving you will be prompted to 'Save & Reload' or cancel.
 
 ## Configuration
 ### Slash Commands
@@ -27,6 +29,12 @@ Auralin Viewport is a World of Warcraft addon designed to enhance the gaming exp
 - **Bottom Slider**: Adjusts the bottom margin.
 - **Left Slider**: Adjusts the left margin.
 - **Right Slider**: Adjusts the right margin.
+- **Profile Selector**: Switches profile assignments for the active character.
+- **Profile Create**: Creates a new profile from current stored settings.
+
+## Development
+- Run Lua syntax checks with `powershell -ExecutionPolicy Bypass -File .\tools\check-lua.ps1`.
+- See [RELEASING.md](RELEASING.md) for alpha, beta, and release tag workflow.
 
 ## Contributing
 Contributions to the Auralin Viewport addon are welcome. Please feel free to submit pull requests or report issues on the addon's GitHub repository.
@@ -36,7 +44,8 @@ This addon is released under the [MIT License](LICENSE).
 
 ## Acknowledgements
 Special thanks to the World of Warcraft addon community for their support and contributions.
-Thank you to sp00n for suggesting a fix to the WorldFrame resetting after certain cut scenes. 
+Thank you to sp00n for suggesting a fix to the WorldFrame resetting after certain cut scenes. Thank you to Numdelicious for
+helping me with WorldFrame parenting. 
 
 ## Contact
 For support or inquiries, please contact Auralin#1305 on B.net or auralin on Discord.
