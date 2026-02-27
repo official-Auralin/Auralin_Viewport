@@ -15,10 +15,10 @@ function AuralinVP:ApplyViewportSettings()
     self:RestoreWorldFrame(settings.left, settings.top, settings.right, settings.bottom)
 
     if self.dummyFrames then
-        self.dummyFrames.top:SetHeight(settings.top)
-        self.dummyFrames.bottom:SetHeight(settings.bottom)
-        self.dummyFrames.left:SetWidth(settings.left)
-        self.dummyFrames.right:SetWidth(settings.right)
+        self.dummyFrames.top:SetHeight(self:ConvertWorldUnitsToPreviewUnits(settings.top))
+        self.dummyFrames.bottom:SetHeight(self:ConvertWorldUnitsToPreviewUnits(settings.bottom))
+        self.dummyFrames.left:SetWidth(self:ConvertWorldUnitsToPreviewUnits(settings.left))
+        self.dummyFrames.right:SetWidth(self:ConvertWorldUnitsToPreviewUnits(settings.right))
 
         if self.RefreshDummyFrameSideAnchors then
             self:RefreshDummyFrameSideAnchors()

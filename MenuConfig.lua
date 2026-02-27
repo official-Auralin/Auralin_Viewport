@@ -46,6 +46,7 @@ local function CreateViewportSlider(sliderName, parent, anchorPoint, labelText, 
 
     slider:SetScript("OnValueChanged", function(self, rawValue)
         local finalValue = ClampViewportValue(rawValue, isVertical)
+        local previewValue = AuralinVP:ConvertWorldUnitsToPreviewUnits(finalValue)
 
         if self.value then
             self.value:SetText(finalValue)
@@ -64,7 +65,7 @@ local function CreateViewportSlider(sliderName, parent, anchorPoint, labelText, 
         end
 
         if AuralinVP.dummyFrames then
-            dimensionSetter(AuralinVP.dummyFrames, finalValue)
+            dimensionSetter(AuralinVP.dummyFrames, previewValue)
 
             if isVertical and AuralinVP.RefreshDummyFrameSideAnchors then
                 AuralinVP:RefreshDummyFrameSideAnchors()
@@ -333,10 +334,10 @@ function AuralinVP:SyncDummyFramesToSliders()
         return
     end
 
-    local top = ClampViewportValue(self.topSlider and self.topSlider:GetValue(), true)
-    local bottom = ClampViewportValue(self.bottomSlider and self.bottomSlider:GetValue(), true)
-    local left = ClampViewportValue(self.leftSlider and self.leftSlider:GetValue(), false)
-    local right = ClampViewportValue(self.rightSlider and self.rightSlider:GetValue(), false)
+    local top = self:ConvertWorldUnitsToPreviewUnits(ClampViewportValue(self.topSlider and self.topSlider:GetValue(), true))
+    local bottom = self:ConvertWorldUnitsToPreviewUnits(ClampViewportValue(self.bottomSlider and self.bottomSlider:GetValue(), true))
+    local left = self:ConvertWorldUnitsToPreviewUnits(ClampViewportValue(self.leftSlider and self.leftSlider:GetValue(), false))
+    local right = self:ConvertWorldUnitsToPreviewUnits(ClampViewportValue(self.rightSlider and self.rightSlider:GetValue(), false))
 
     self.dummyFrames.top:SetHeight(top)
     self.dummyFrames.bottom:SetHeight(bottom)
@@ -361,19 +362,23 @@ function AuralinVP:CreateDummyFrames()
     local bottom = settings.bottom or Constants.DEFAULT_BOTTOM
     local left = settings.left or Constants.DEFAULT_LEFT
     local right = settings.right or Constants.DEFAULT_RIGHT
+    local topPreview = self:ConvertWorldUnitsToPreviewUnits(top)
+    local bottomPreview = self:ConvertWorldUnitsToPreviewUnits(bottom)
+    local leftPreview = self:ConvertWorldUnitsToPreviewUnits(left)
+    local rightPreview = self:ConvertWorldUnitsToPreviewUnits(right)
 
     self.dummyFrames.top:ClearAllPoints()
     self.dummyFrames.top:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
     self.dummyFrames.top:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, 0)
-    self.dummyFrames.top:SetHeight(top)
+    self.dummyFrames.top:SetHeight(topPreview)
 
     self.dummyFrames.bottom:ClearAllPoints()
     self.dummyFrames.bottom:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
     self.dummyFrames.bottom:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, 0)
-    self.dummyFrames.bottom:SetHeight(bottom)
+    self.dummyFrames.bottom:SetHeight(bottomPreview)
 
-    self.dummyFrames.left:SetWidth(left)
-    self.dummyFrames.right:SetWidth(right)
+    self.dummyFrames.left:SetWidth(leftPreview)
+    self.dummyFrames.right:SetWidth(rightPreview)
     self:RefreshDummyFrameSideAnchors()
 
     for _, frame in pairs(self.dummyFrames) do

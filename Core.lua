@@ -21,6 +21,29 @@ local function RoundViewportValue(value)
     return floor((tonumber(value) or 0) + Constants.ROUNDING_THRESHOLD)
 end
 
+function AuralinVP:GetFrameScale(frame)
+    if frame and frame.GetEffectiveScale then
+        local scale = frame:GetEffectiveScale()
+        if scale and scale > 0 then
+            return scale
+        end
+    end
+
+    return 1
+end
+
+function AuralinVP:ConvertWorldUnitsToPreviewUnits(value)
+    local worldScale = self:GetFrameScale(WorldFrame)
+    local uiScale = self:GetFrameScale(UIParent)
+    return (tonumber(value) or 0) * (worldScale / uiScale)
+end
+
+function AuralinVP:ConvertPreviewUnitsToWorldUnits(value)
+    local worldScale = self:GetFrameScale(WorldFrame)
+    local uiScale = self:GetFrameScale(UIParent)
+    return (tonumber(value) or 0) * (uiScale / worldScale)
+end
+
 function AuralinVP:Print(message)
     print("Auralin_Viewport: " .. tostring(message))
 end
@@ -205,10 +228,10 @@ function AuralinVP:GetRoundedDummyFrameSettings()
     end
 
     return {
-        top = RoundViewportValue(self.dummyFrames.top and self.dummyFrames.top:GetHeight()),
-        left = RoundViewportValue(self.dummyFrames.left and self.dummyFrames.left:GetWidth()),
-        right = RoundViewportValue(self.dummyFrames.right and self.dummyFrames.right:GetWidth()),
-        bottom = RoundViewportValue(self.dummyFrames.bottom and self.dummyFrames.bottom:GetHeight()),
+        top = RoundViewportValue(self:ConvertPreviewUnitsToWorldUnits(self.dummyFrames.top and self.dummyFrames.top:GetHeight())),
+        left = RoundViewportValue(self:ConvertPreviewUnitsToWorldUnits(self.dummyFrames.left and self.dummyFrames.left:GetWidth())),
+        right = RoundViewportValue(self:ConvertPreviewUnitsToWorldUnits(self.dummyFrames.right and self.dummyFrames.right:GetWidth())),
+        bottom = RoundViewportValue(self:ConvertPreviewUnitsToWorldUnits(self.dummyFrames.bottom and self.dummyFrames.bottom:GetHeight())),
     }
 end
 
@@ -245,26 +268,30 @@ function AuralinVP:RestoreDummyFramesToStoredSettings()
     local bottom = settings.bottom or Constants.DEFAULT_BOTTOM
     local left = settings.left or Constants.DEFAULT_LEFT
     local right = settings.right or Constants.DEFAULT_RIGHT
+    local topPreview = self:ConvertWorldUnitsToPreviewUnits(top)
+    local bottomPreview = self:ConvertWorldUnitsToPreviewUnits(bottom)
+    local leftPreview = self:ConvertWorldUnitsToPreviewUnits(left)
+    local rightPreview = self:ConvertWorldUnitsToPreviewUnits(right)
 
     self:ResetDummyFrame(self.dummyFrames.top, {
         { "TOPLEFT", UIParent, "TOPLEFT", 0, 0 },
         { "TOPRIGHT", UIParent, "TOPRIGHT", 0, 0 },
-    }, { height = top })
+    }, { height = topPreview })
 
     self:ResetDummyFrame(self.dummyFrames.bottom, {
         { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0 },
         { "BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, 0 },
-    }, { height = bottom })
+    }, { height = bottomPreview })
 
     self:ResetDummyFrame(self.dummyFrames.left, {
-        { "TOPLEFT", UIParent, "TOPLEFT", 0, -top },
-        { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, bottom },
-    }, { width = left })
+        { "TOPLEFT", UIParent, "TOPLEFT", 0, -topPreview },
+        { "BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, bottomPreview },
+    }, { width = leftPreview })
 
     self:ResetDummyFrame(self.dummyFrames.right, {
-        { "TOPRIGHT", UIParent, "TOPRIGHT", 0, -top },
-        { "BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, bottom },
-    }, { width = right })
+        { "TOPRIGHT", UIParent, "TOPRIGHT", 0, -topPreview },
+        { "BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, bottomPreview },
+    }, { width = rightPreview })
 end
 
 function AuralinVP:PersistCurrentSettings()
