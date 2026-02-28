@@ -136,6 +136,10 @@ function AuralinVP:UpdateProfileLabel()
         self.profileLabel:SetText("Select or create a profile for this\ncharacter:\n\nCurrent Profile: " .. currentProfileName .. ".")
     end
 
+    if self.RefreshDuplicateSourceDropDown then
+        self:RefreshDuplicateSourceDropDown()
+    end
+
     if self.UpdateProfileActionButtons then
         self:UpdateProfileActionButtons()
     end
@@ -261,6 +265,173 @@ function AuralinVP:RefreshProfileDropDown()
     end
 end
 
+local duplicateSourceProfileName = nil
+local duplicateSourceDropDown = nil
+local refreshDuplicateSourceDropDown = nil
+local createProfileButton = nil
+
+local function GetDuplicateSourceProfiles()
+    local activeProfileName = AuralinVP:GetActiveProfileName()
+    local profiles = AuralinVP:GetAvailableProfiles()
+    local sourceProfiles = {}
+
+    for _, profileName in ipairs(profiles) do
+        if profileName ~= activeProfileName then
+            tinsert(sourceProfiles, profileName)
+        end
+    end
+
+    return sourceProfiles
+end
+
+local function NormalizeDuplicateSourceSelection()
+    local sourceProfiles = GetDuplicateSourceProfiles()
+    if #sourceProfiles == 0 then
+        duplicateSourceProfileName = nil
+        return sourceProfiles
+    end
+
+    local hasValidSelection = false
+    for _, profileName in ipairs(sourceProfiles) do
+        if profileName == duplicateSourceProfileName then
+            hasValidSelection = true
+            break
+        end
+    end
+
+    if not hasValidSelection then
+        duplicateSourceProfileName = sourceProfiles[1]
+    end
+
+    return sourceProfiles
+end
+
+local function BuildModernDuplicateSourceDropDown()
+    local hasSetupMenu = type(DropdownButtonMixin) == "table" and type(DropdownButtonMixin.SetupMenu) == "function"
+    if not hasSetupMenu then
+        return nil, nil
+    end
+
+    local ok, dropdown = pcall(CreateFrame, "DropdownButton", "AuralinVP_DuplicateSourceDropDown", AuralinVP.MainMenuFrame, "WowStyle1DropdownTemplate")
+    if not ok or not dropdown then
+        return nil, nil
+    end
+
+    dropdown:SetPoint("TOPLEFT", createProfileButton, "BOTTOMLEFT", 0, -8)
+    dropdown:SetWidth(130)
+    if dropdown.SetDefaultText then
+        dropdown:SetDefaultText("Duplicate Source")
+    end
+
+    local function IsSelected(profileName)
+        return duplicateSourceProfileName == profileName
+    end
+
+    local function SetSelected(profileName)
+        duplicateSourceProfileName = profileName
+        if dropdown.GenerateMenu then
+            dropdown:GenerateMenu()
+        end
+        if AuralinVP.UpdateProfileActionButtons then
+            AuralinVP:UpdateProfileActionButtons()
+        end
+    end
+
+    dropdown:SetupMenu(function(_, rootDescription)
+        local sourceProfiles = NormalizeDuplicateSourceSelection()
+        if #sourceProfiles == 0 then
+            local noSources = rootDescription:CreateButton("No source profiles")
+            if noSources and noSources.SetEnabled then
+                noSources:SetEnabled(false)
+            end
+            return
+        end
+
+        for _, profileName in ipairs(sourceProfiles) do
+            rootDescription:CreateRadio(profileName, IsSelected, SetSelected, profileName)
+        end
+    end)
+
+    local function Refresh()
+        NormalizeDuplicateSourceSelection()
+        if dropdown.GenerateMenu then
+            dropdown:GenerateMenu()
+        end
+    end
+
+    Refresh()
+    return dropdown, Refresh
+end
+
+local function BuildLegacyDuplicateSourceDropDown()
+    local hasLegacyDropDown = type(UIDropDownMenu_Initialize) == "function"
+        and type(UIDropDownMenu_SetWidth) == "function"
+        and type(UIDropDownMenu_SetText) == "function"
+        and type(UIDropDownMenu_CreateInfo) == "function"
+        and type(UIDropDownMenu_AddButton) == "function"
+        and type(UIDropDownMenu_SetSelectedName) == "function"
+
+    if not hasLegacyDropDown then
+        return nil, nil
+    end
+
+    local dropdown = CreateFrame("Frame", "AuralinVP_DuplicateSourceDropDown", AuralinVP.MainMenuFrame, "UIDropDownMenuTemplate")
+    dropdown:SetPoint("TOPLEFT", createProfileButton, "BOTTOMLEFT", -16, -8)
+    UIDropDownMenu_SetWidth(dropdown, 130)
+    UIDropDownMenu_SetText(dropdown, "Duplicate Source")
+
+    local function Initialize(_, level)
+        if not level then
+            return
+        end
+
+        local info = UIDropDownMenu_CreateInfo()
+        local sourceProfiles = NormalizeDuplicateSourceSelection()
+        if #sourceProfiles == 0 then
+            info.text = "No source profiles"
+            info.isTitle = true
+            info.notCheckable = true
+            info.disabled = true
+            UIDropDownMenu_AddButton(info, level)
+            return
+        end
+
+        for _, profileName in ipairs(sourceProfiles) do
+            info.text = profileName
+            info.func = function()
+                duplicateSourceProfileName = profileName
+                UIDropDownMenu_SetSelectedName(dropdown, profileName)
+                UIDropDownMenu_SetText(dropdown, profileName)
+                if AuralinVP.UpdateProfileActionButtons then
+                    AuralinVP:UpdateProfileActionButtons()
+                end
+            end
+            info.checked = (duplicateSourceProfileName == profileName)
+            info.isNotRadio = nil
+            info.disabled = nil
+            info.notCheckable = nil
+            info.isTitle = nil
+            UIDropDownMenu_AddButton(info, level)
+        end
+
+        if duplicateSourceProfileName then
+            UIDropDownMenu_SetSelectedName(dropdown, duplicateSourceProfileName)
+            UIDropDownMenu_SetText(dropdown, duplicateSourceProfileName)
+        else
+            UIDropDownMenu_SetSelectedName(dropdown, nil)
+            UIDropDownMenu_SetText(dropdown, "Duplicate Source")
+        end
+    end
+
+    local function Refresh()
+        NormalizeDuplicateSourceSelection()
+        UIDropDownMenu_Initialize(dropdown, Initialize)
+    end
+
+    Refresh()
+    return dropdown, Refresh
+end
+
 local createProfileEditBox = CreateFrame("EditBox", "AuralinVP_CreateProfileEditBox", AuralinVP.MainMenuFrame, "InputBoxTemplate")
 createProfileEditBox:SetSize(130, 20)
 if profileDropDown then
@@ -271,7 +442,7 @@ end
 createProfileEditBox:SetAutoFocus(false)
 createProfileEditBox:SetMaxLetters(Constants.MAX_PROFILE_NAME_LENGTH)
 
-local createProfileButton = CreateFrame("Button", "AuralinVP_CreateProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
+createProfileButton = CreateFrame("Button", "AuralinVP_CreateProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
 createProfileButton:SetSize(62, 22)
 createProfileButton:SetPoint("TOPLEFT", createProfileEditBox, "BOTTOMLEFT", 0, -6)
 createProfileButton:SetText("Create")
@@ -323,23 +494,57 @@ deleteProfileButton:SetScript("OnClick", function()
     StaticPopup_Show("AURALIN_VIEWPORT_DELETE_PROFILE_CONFIRM", activeProfileName, nil, activeProfileName)
 end)
 
-local copyProfileButton = CreateFrame("Button", "AuralinVP_CopyProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
-copyProfileButton:SetSize(62, 22)
-copyProfileButton:SetPoint("TOPLEFT", createProfileButton, "BOTTOMLEFT", 0, -4)
-copyProfileButton:SetText("Copy")
-copyProfileButton:SetScript("OnClick", function()
+duplicateSourceDropDown, refreshDuplicateSourceDropDown = BuildModernDuplicateSourceDropDown()
+if not duplicateSourceDropDown then
+    duplicateSourceDropDown, refreshDuplicateSourceDropDown = BuildLegacyDuplicateSourceDropDown()
+end
+
+function AuralinVP:RefreshDuplicateSourceDropDown()
+    if refreshDuplicateSourceDropDown then
+        refreshDuplicateSourceDropDown()
+    end
+end
+
+local duplicateProfileButton = CreateFrame("Button", "AuralinVP_DuplicateProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
+duplicateProfileButton:SetSize(62, 22)
+if duplicateSourceDropDown then
+    duplicateProfileButton:SetPoint("TOPLEFT", duplicateSourceDropDown, "BOTTOMLEFT", 0, -4)
+else
+    duplicateProfileButton:SetPoint("TOPLEFT", createProfileButton, "BOTTOMLEFT", 0, -4)
+end
+duplicateProfileButton:SetText("Duplicate")
+duplicateProfileButton:SetScript("OnClick", function()
     local activeProfileName = AuralinVP:GetActiveProfileName()
     if not activeProfileName then
         AuralinVP:Print("No active profile is assigned.")
         return
     end
 
-    StaticPopup_Show("AURALIN_VIEWPORT_COPY_PROFILE_CONFIRM", activeProfileName, nil, activeProfileName)
+    local sourceProfileName = duplicateSourceProfileName
+    if not sourceProfileName or sourceProfileName == "" then
+        AuralinVP:Print("No source profile is selected.")
+        return
+    end
+
+    local success, result = AuralinVP:CopyProfile(sourceProfileName, activeProfileName)
+    if not success then
+        AuralinVP:Print(result or "Unable to duplicate profile settings.")
+        return
+    end
+
+    AuralinVP:Print("Duplicated profile '" .. tostring(sourceProfileName) .. "' into '" .. tostring(result) .. "'.")
+    if AuralinVP.RefreshDuplicateSourceDropDown then
+        AuralinVP:RefreshDuplicateSourceDropDown()
+    end
 end)
 
 local resetProfileButton = CreateFrame("Button", "AuralinVP_ResetProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
 resetProfileButton:SetSize(62, 22)
-resetProfileButton:SetPoint("TOPRIGHT", deleteProfileButton, "BOTTOMRIGHT", 0, -4)
+if duplicateSourceDropDown then
+    resetProfileButton:SetPoint("TOPRIGHT", duplicateSourceDropDown, "BOTTOMRIGHT", 0, -4)
+else
+    resetProfileButton:SetPoint("TOPRIGHT", deleteProfileButton, "BOTTOMRIGHT", 0, -4)
+end
 resetProfileButton:SetText("Reset")
 resetProfileButton:SetScript("OnClick", function()
     local activeProfileName = AuralinVP:GetActiveProfileName()
@@ -352,12 +557,12 @@ resetProfileButton:SetScript("OnClick", function()
 end)
 
 function AuralinVP:UpdateProfileActionButtons()
-    if not deleteProfileButton or not copyProfileButton or not resetProfileButton then
+    if not deleteProfileButton or not duplicateProfileButton or not resetProfileButton then
         return
     end
 
     local activeProfileName = self:GetActiveProfileName()
-    local profileCount = #self:GetAvailableProfiles()
+    local hasSourceProfile = duplicateSourceProfileName ~= nil and duplicateSourceProfileName ~= ""
 
     if activeProfileName and not self:IsDefaultProfile(activeProfileName) then
         deleteProfileButton:Enable()
@@ -365,10 +570,10 @@ function AuralinVP:UpdateProfileActionButtons()
         deleteProfileButton:Disable()
     end
 
-    if activeProfileName and profileCount > 1 then
-        copyProfileButton:Enable()
+    if activeProfileName and hasSourceProfile and duplicateSourceProfileName ~= activeProfileName then
+        duplicateProfileButton:Enable()
     else
-        copyProfileButton:Disable()
+        duplicateProfileButton:Disable()
     end
 
     if activeProfileName then

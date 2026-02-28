@@ -764,66 +764,6 @@ StaticPopupDialogs["AURALIN_VIEWPORT_DELETE_PROFILE_CONFIRM"] = StaticPopupDialo
     preferredIndex = 3,
 }
 
-StaticPopupDialogs["AURALIN_VIEWPORT_COPY_PROFILE_CONFIRM"] = StaticPopupDialogs["AURALIN_VIEWPORT_COPY_PROFILE_CONFIRM"] or {
-    text = "Copy settings into '%s'.\nEnter source profile name:",
-    button1 = ACCEPT,
-    button2 = CANCEL,
-    hasEditBox = true,
-    maxLetters = Constants.MAX_PROFILE_NAME_LENGTH,
-    OnShow = function(self)
-        if self and self.editBox then
-            self.editBox:SetText("")
-            self.editBox:HighlightText()
-            self.editBox:SetFocus()
-        end
-    end,
-    OnAccept = function(self, targetProfileName)
-        if not AuralinVP.CopyProfile then
-            return
-        end
-
-        local sourceProfileName = ""
-        if self and self.editBox and self.editBox.GetText then
-            sourceProfileName = self.editBox:GetText() or ""
-        end
-
-        if type(strtrim) == "function" then
-            sourceProfileName = strtrim(sourceProfileName)
-        else
-            sourceProfileName = sourceProfileName:gsub("^%s+", ""):gsub("%s+$", "")
-        end
-
-        if sourceProfileName == "" then
-            AuralinVP:Print("Source profile name cannot be empty.")
-            return
-        end
-
-        local success, result = AuralinVP:CopyProfile(sourceProfileName, targetProfileName)
-        if not success then
-            AuralinVP:Print(result or "Unable to copy profile settings.")
-            return
-        end
-
-        AuralinVP:Print("Copied profile '" .. tostring(sourceProfileName) .. "' into '" .. tostring(result) .. "'.")
-    end,
-    EditBoxOnEnterPressed = function(editBox)
-        local popup = editBox and editBox:GetParent()
-        if popup and popup.button1 and popup.button1:IsEnabled() then
-            popup.button1:Click()
-        end
-    end,
-    EditBoxOnEscapePressed = function(editBox)
-        local popup = editBox and editBox:GetParent()
-        if popup then
-            popup:Hide()
-        end
-    end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3,
-}
-
 StaticPopupDialogs["AURALIN_VIEWPORT_RESET_PROFILE_CONFIRM"] = StaticPopupDialogs["AURALIN_VIEWPORT_RESET_PROFILE_CONFIRM"] or {
     text = "Reset profile '%s' to default viewport values?",
     button1 = RESET or "Reset",
