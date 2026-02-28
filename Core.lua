@@ -548,10 +548,6 @@ function AuralinVP:DeleteProfile(profileName)
         return false, "Cannot delete the '" .. Constants.DEFAULT_PROFILE_NAME .. "' profile."
     end
 
-    if self:GetActiveProfileName() == normalizedProfileName then
-        return false, "Cannot delete the active profile '" .. normalizedProfileName .. "'."
-    end
-
     local profileStore = self:GetProfileStorage()
     if type(profileStore) ~= "table" or type(profileStore.profiles) ~= "table" then
         return false, "Cannot delete profile; profile storage is unavailable."
