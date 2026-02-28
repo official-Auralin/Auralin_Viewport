@@ -75,6 +75,7 @@ end
 --@alpha@
 function AuralinVP:EnsureProfileStorage()
     local legacySettings = self:EnsureLegacySettings()
+    local defaultProfileName = Constants.DEFAULT_PROFILE_NAME
 
     if type(Auralin_Viewport_Profiles) ~= "table" then
         Auralin_Viewport_Profiles = {}
@@ -90,26 +91,41 @@ function AuralinVP:EnsureProfileStorage()
     if type(profileStore.meta) ~= "table" then
         profileStore.meta = {}
     end
+    if type(profileStore.meta.createdAtByProfile) ~= "table" then
+        profileStore.meta.createdAtByProfile = {}
+    end
+    if type(profileStore.meta.updatedAtByProfile) ~= "table" then
+        profileStore.meta.updatedAtByProfile = {}
+    end
+    if type(profileStore.meta.schemaVersion) ~= "number" or profileStore.meta.schemaVersion < Constants.PROFILE_SCHEMA_VERSION then
+        profileStore.meta.schemaVersion = Constants.PROFILE_SCHEMA_VERSION
+    end
 
-    local hadDefaultProfile = profileStore.profiles.Default ~= nil
-    profileStore.profiles.Default = CopySanitizedSettingsFromTable(profileStore.profiles.Default, profileStore.profiles.Default)
+    local hadDefaultProfile = profileStore.profiles[defaultProfileName] ~= nil
+    profileStore.profiles[defaultProfileName] = CopySanitizedSettingsFromTable(profileStore.profiles[defaultProfileName], profileStore.profiles[defaultProfileName])
+    if self.TouchProfileMetadata then
+        self:TouchProfileMetadata(defaultProfileName, not hadDefaultProfile)
+    end
 
     if profileStore.meta.legacyImported ~= true then
         if not hadDefaultProfile then
-            CopySanitizedSettingsFromTable(legacySettings, profileStore.profiles.Default)
+            CopySanitizedSettingsFromTable(legacySettings, profileStore.profiles[defaultProfileName])
+            if self.TouchProfileMetadata then
+                self:TouchProfileMetadata(defaultProfileName, false)
+            end
         end
         profileStore.meta.legacyImported = true
     end
 
     local activeProfileName = self:GetActiveProfileName()
-    if not activeProfileName and profileStore.profiles.Default then
+    if not activeProfileName and profileStore.profiles[defaultProfileName] then
         local charName, charRealm = UnitName("player")
         if charName and charName ~= "" then
             local normalizedRealm = charRealm
             if not normalizedRealm or normalizedRealm == "" then
                 normalizedRealm = GetNormalizedRealmName() or GetRealmName() or "UnknownRealm"
             end
-            profileStore.charSettings[normalizedRealm .. "-" .. charName] = "Default"
+            profileStore.charSettings[normalizedRealm .. "-" .. charName] = defaultProfileName
         end
     end
 

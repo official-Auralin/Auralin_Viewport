@@ -6,9 +6,12 @@ AuralinVP.Constants = {
     DEFAULT_BOTTOM = 112,
     DEFAULT_LEFT = 0,
     DEFAULT_RIGHT = 0,
+    DEFAULT_PROFILE_NAME = "Default",
     ROUNDING_THRESHOLD = 0.5,
     MAX_SLIDER_VALUE = 500,
     DEFAULT_SLIDER_LENGTH = 200,
+    PROFILE_SCHEMA_VERSION = 2,
+    MAX_PROFILE_NAME_LENGTH = 32,
 }
 
 local Constants = AuralinVP.Constants
@@ -93,7 +96,24 @@ function AuralinVP:RestoreWorldFrame(left, top, right, bottom)
 end
 
 --@alpha@
-local function GetCharacterFullName()
+local function GetCurrentTimestamp()
+    if type(time) == "function" then
+        return time()
+    end
+
+    return 0
+end
+
+local function CopyProfileSettings(source)
+    return {
+        top = tonumber(source and source.top) or Constants.DEFAULT_TOP,
+        left = tonumber(source and source.left) or Constants.DEFAULT_LEFT,
+        right = tonumber(source and source.right) or Constants.DEFAULT_RIGHT,
+        bottom = tonumber(source and source.bottom) or Constants.DEFAULT_BOTTOM,
+    }
+end
+
+function AuralinVP:GetCharacterFullName()
     local name, realm = UnitName("player")
     if not name or name == "" then
         return nil
@@ -104,6 +124,118 @@ local function GetCharacterFullName()
     end
 
     return realm .. "-" .. name
+end
+
+function AuralinVP:GetCurrentCharacterKey()
+    return self:GetCharacterFullName()
+end
+
+function AuralinVP:GetProfileStorage()
+    if type(Auralin_Viewport_Profiles) == "table" then
+        return Auralin_Viewport_Profiles
+    end
+
+    return nil
+end
+
+function AuralinVP:GetProfileMeta()
+    local profileStore = self:GetProfileStorage()
+    if type(profileStore) ~= "table" then
+        return nil
+    end
+
+    if type(profileStore.meta) ~= "table" then
+        profileStore.meta = {}
+    end
+
+    local meta = profileStore.meta
+    if type(meta.createdAtByProfile) ~= "table" then
+        meta.createdAtByProfile = {}
+    end
+    if type(meta.updatedAtByProfile) ~= "table" then
+        meta.updatedAtByProfile = {}
+    end
+
+    if type(meta.schemaVersion) ~= "number" or meta.schemaVersion < Constants.PROFILE_SCHEMA_VERSION then
+        meta.schemaVersion = Constants.PROFILE_SCHEMA_VERSION
+    end
+
+    return meta
+end
+
+function AuralinVP:TouchProfileMetadata(profileName, isCreate)
+    local meta = self:GetProfileMeta()
+    local normalizedProfileName = self:NormalizeProfileName(profileName)
+    if not meta or normalizedProfileName == "" then
+        return
+    end
+
+    local timestamp = GetCurrentTimestamp()
+    if isCreate and meta.createdAtByProfile[normalizedProfileName] == nil then
+        meta.createdAtByProfile[normalizedProfileName] = timestamp
+    end
+
+    meta.updatedAtByProfile[normalizedProfileName] = timestamp
+end
+
+function AuralinVP:NormalizeProfileName(profileName)
+    if profileName == nil then
+        return ""
+    end
+
+    local normalized = tostring(profileName)
+    if type(strtrim) == "function" then
+        normalized = strtrim(normalized)
+    else
+        normalized = normalized:gsub("^%s+", ""):gsub("%s+$", "")
+    end
+
+    return normalized
+end
+
+function AuralinVP:IsDefaultProfile(profileName)
+    return self:NormalizeProfileName(profileName) == Constants.DEFAULT_PROFILE_NAME
+end
+
+function AuralinVP:ValidateProfileName(profileName, options)
+    options = options or {}
+
+    local normalized = self:NormalizeProfileName(profileName)
+    if normalized == "" then
+        return nil, "Profile name cannot be empty."
+    end
+
+    if #normalized > Constants.MAX_PROFILE_NAME_LENGTH then
+        return nil, "Profile name cannot exceed " .. Constants.MAX_PROFILE_NAME_LENGTH .. " characters."
+    end
+
+    if normalized:find("[%c]") then
+        return nil, "Profile name cannot contain control characters."
+    end
+
+    if options.forCreate and self:IsDefaultProfile(normalized) then
+        return nil, "The profile name '" .. Constants.DEFAULT_PROFILE_NAME .. "' is reserved."
+    end
+
+    return normalized
+end
+
+function AuralinVP:RefreshProfileState()
+    if self.UpdateProfileLabel then
+        self:UpdateProfileLabel()
+    end
+
+    if self.RefreshProfileDropDown then
+        self:RefreshProfileDropDown()
+    end
+
+    if self.UpdateSlidersWithCurrentSettings then
+        self:UpdateSlidersWithCurrentSettings()
+    end
+
+    if self.ApplyViewportSettings then
+        self:ApplyViewportSettings()
+    end
 end
 
 function AuralinVP:GetActiveProfileName()
@@ -117,20 +249,24 @@ function AuralinVP:GetActiveProfileName()
         return nil
     end
 
-    local charKey = GetCharacterFullName()
+    local charKey = self:GetCurrentCharacterKey()
     if not charKey then
         return nil
     end
 
-    local assignedProfile = charSettings[charKey]
+    local assignedProfile = self:NormalizeProfileName(charSettings[charKey])
+    if assignedProfile == "" then
+        assignedProfile = nil
+    end
+
     if assignedProfile and not profiles[assignedProfile] then
         charSettings[charKey] = nil
         assignedProfile = nil
     end
 
-    if not assignedProfile and profiles.Default then
-        charSettings[charKey] = "Default"
-        assignedProfile = "Default"
+    if not assignedProfile and profiles[Constants.DEFAULT_PROFILE_NAME] then
+        charSettings[charKey] = Constants.DEFAULT_PROFILE_NAME
+        assignedProfile = Constants.DEFAULT_PROFILE_NAME
     end
 
     return assignedProfile
@@ -148,17 +284,12 @@ function AuralinVP:GetActiveProfile()
             return profile
         end
 
-        if Auralin_Viewport_Profiles.profiles.Default then
-            return Auralin_Viewport_Profiles.profiles.Default
+        if Auralin_Viewport_Profiles.profiles[Constants.DEFAULT_PROFILE_NAME] then
+            return Auralin_Viewport_Profiles.profiles[Constants.DEFAULT_PROFILE_NAME]
         end
     end
 
-    return {
-        top = Constants.DEFAULT_TOP,
-        left = Constants.DEFAULT_LEFT,
-        right = Constants.DEFAULT_RIGHT,
-        bottom = Constants.DEFAULT_BOTTOM,
-    }
+    return CopyProfileSettings(nil)
 end
 
 function AuralinVP:GetAvailableProfiles()
@@ -178,37 +309,306 @@ function AuralinVP:GetAvailableProfiles()
     return list
 end
 
-function AuralinVP:SetActiveProfile(profileName)
+function AuralinVP:GetCharactersUsingProfile(profileName)
     if self.EnsureProfileStorage then
         self:EnsureProfileStorage()
     end
 
-    if not profileName or type(Auralin_Viewport_Profiles) ~= "table" or type(Auralin_Viewport_Profiles.profiles) ~= "table" then
-        self:Print("Cannot set active profile; profile storage is unavailable.")
-        return
+    local normalizedProfileName = self:NormalizeProfileName(profileName)
+    if normalizedProfileName == "" or type(Auralin_Viewport_Profiles) ~= "table" or type(Auralin_Viewport_Profiles.charSettings) ~= "table" then
+        return {}
     end
 
-    if not Auralin_Viewport_Profiles.profiles[profileName] then
-        self:Print("Cannot set active profile; profile does not exist: " .. tostring(profileName))
-        return
+    local characters = {}
+    for charKey, assignedProfile in pairs(Auralin_Viewport_Profiles.charSettings) do
+        if assignedProfile == normalizedProfileName then
+            tinsert(characters, charKey)
+        end
+    end
+    table.sort(characters)
+    return characters
+end
+
+function AuralinVP:AssignProfileToCharacter(charKey, profileName)
+    if self.EnsureProfileStorage then
+        self:EnsureProfileStorage()
     end
 
-    local charKey = GetCharacterFullName()
-    if not charKey then
-        self:Print("Cannot set active profile; character name is unavailable.")
-        return
+    local normalizedCharKey = charKey or self:GetCurrentCharacterKey()
+    if normalizedCharKey ~= nil then
+        normalizedCharKey = tostring(normalizedCharKey)
+        if type(strtrim) == "function" then
+            normalizedCharKey = strtrim(normalizedCharKey)
+        else
+            normalizedCharKey = normalizedCharKey:gsub("^%s+", ""):gsub("%s+$", "")
+        end
     end
 
-    Auralin_Viewport_Profiles.charSettings = Auralin_Viewport_Profiles.charSettings or {}
-    Auralin_Viewport_Profiles.charSettings[charKey] = profileName
+    if not normalizedCharKey then
+        return false, "Cannot assign profile; character name is unavailable."
+    end
+    if normalizedCharKey == "" then
+        return false, "Cannot assign profile; character key cannot be empty."
+    end
 
-    if self.UpdateProfileLabel then
+    local normalizedProfileName, errorMessage = self:ValidateProfileName(profileName)
+    if not normalizedProfileName then
+        return false, errorMessage
+    end
+
+    local profileStore = self:GetProfileStorage()
+    if type(profileStore) ~= "table" or type(profileStore.profiles) ~= "table" then
+        return false, "Cannot assign profile; profile storage is unavailable."
+    end
+
+    if not profileStore.profiles[normalizedProfileName] then
+        if profileStore.profiles[Constants.DEFAULT_PROFILE_NAME] then
+            normalizedProfileName = Constants.DEFAULT_PROFILE_NAME
+        else
+            return false, "Cannot assign profile; profile does not exist: " .. tostring(profileName)
+        end
+    end
+
+    profileStore.charSettings = profileStore.charSettings or {}
+    profileStore.charSettings[normalizedCharKey] = normalizedProfileName
+
+    if normalizedCharKey == self:GetCurrentCharacterKey() then
+        self:RefreshProfileState()
+    elseif self.UpdateProfileLabel then
         self:UpdateProfileLabel()
     end
 
-    if self.UpdateSlidersWithCurrentSettings then
-        self:UpdateSlidersWithCurrentSettings()
+    return true, normalizedProfileName
+end
+
+function AuralinVP:SetActiveProfile(profileName)
+    local success, result = self:AssignProfileToCharacter(self:GetCurrentCharacterKey(), profileName)
+    if not success then
+        self:Print(result)
+        return false, result
     end
+
+    return true, result
+end
+
+function AuralinVP:CreateProfile(profileName, sourceProfileName)
+    if self.EnsureProfileStorage then
+        self:EnsureProfileStorage()
+    end
+
+    local normalizedProfileName, errorMessage = self:ValidateProfileName(profileName, { forCreate = true })
+    if not normalizedProfileName then
+        return false, errorMessage
+    end
+
+    local profileStore = self:GetProfileStorage()
+    if type(profileStore) ~= "table" or type(profileStore.profiles) ~= "table" then
+        return false, "Cannot create profile; profile storage is unavailable."
+    end
+
+    if profileStore.profiles[normalizedProfileName] then
+        return false, "Profile '" .. normalizedProfileName .. "' already exists."
+    end
+
+    local sourceSettings = nil
+    if sourceProfileName ~= nil then
+        local normalizedSourceName, sourceError = self:ValidateProfileName(sourceProfileName)
+        if not normalizedSourceName then
+            return false, sourceError
+        end
+
+        sourceSettings = profileStore.profiles[normalizedSourceName]
+        if not sourceSettings then
+            return false, "Cannot create profile; source profile does not exist: " .. tostring(sourceProfileName)
+        end
+    else
+        sourceSettings = self.GetStoredSettings and self:GetStoredSettings() or self:GetActiveProfile()
+    end
+
+    profileStore.profiles[normalizedProfileName] = CopyProfileSettings(sourceSettings)
+    self:TouchProfileMetadata(normalizedProfileName, true)
+
+    return true, normalizedProfileName
+end
+
+function AuralinVP:CopyProfile(sourceProfileName, targetProfileName)
+    if self.EnsureProfileStorage then
+        self:EnsureProfileStorage()
+    end
+
+    local sourceName, sourceError = self:ValidateProfileName(sourceProfileName)
+    if not sourceName then
+        return false, sourceError
+    end
+
+    local targetName, targetError = self:ValidateProfileName(targetProfileName)
+    if not targetName then
+        return false, targetError
+    end
+
+    if sourceName == targetName then
+        return false, "Cannot copy profile; source and target are the same."
+    end
+
+    local profileStore = self:GetProfileStorage()
+    if type(profileStore) ~= "table" or type(profileStore.profiles) ~= "table" then
+        return false, "Cannot copy profile; profile storage is unavailable."
+    end
+
+    if not profileStore.profiles[sourceName] then
+        return false, "Cannot copy profile; source profile does not exist: " .. tostring(sourceName)
+    end
+
+    if not profileStore.profiles[targetName] then
+        return false, "Cannot copy profile; target profile does not exist: " .. tostring(targetName)
+    end
+
+    profileStore.profiles[targetName] = CopyProfileSettings(profileStore.profiles[sourceName])
+    self:TouchProfileMetadata(targetName, false)
+
+    if self:GetActiveProfileName() == targetName then
+        self:RefreshProfileState()
+    end
+
+    return true, targetName
+end
+
+function AuralinVP:RenameProfile(oldName, newName)
+    if self.EnsureProfileStorage then
+        self:EnsureProfileStorage()
+    end
+
+    local normalizedOldName, oldError = self:ValidateProfileName(oldName)
+    if not normalizedOldName then
+        return false, oldError
+    end
+
+    if self:IsDefaultProfile(normalizedOldName) then
+        return false, "Cannot rename the '" .. Constants.DEFAULT_PROFILE_NAME .. "' profile."
+    end
+
+    local normalizedNewName, newError = self:ValidateProfileName(newName, { forCreate = true })
+    if not normalizedNewName then
+        return false, newError
+    end
+
+    local profileStore = self:GetProfileStorage()
+    if type(profileStore) ~= "table" or type(profileStore.profiles) ~= "table" then
+        return false, "Cannot rename profile; profile storage is unavailable."
+    end
+
+    if not profileStore.profiles[normalizedOldName] then
+        return false, "Cannot rename profile; profile does not exist: " .. tostring(normalizedOldName)
+    end
+
+    if profileStore.profiles[normalizedNewName] then
+        return false, "Cannot rename profile; '" .. normalizedNewName .. "' already exists."
+    end
+
+    profileStore.profiles[normalizedNewName] = profileStore.profiles[normalizedOldName]
+    profileStore.profiles[normalizedOldName] = nil
+
+    local meta = self:GetProfileMeta()
+    if meta then
+        if meta.createdAtByProfile[normalizedOldName] ~= nil then
+            meta.createdAtByProfile[normalizedNewName] = meta.createdAtByProfile[normalizedOldName]
+            meta.createdAtByProfile[normalizedOldName] = nil
+        end
+
+        if meta.updatedAtByProfile[normalizedOldName] ~= nil then
+            meta.updatedAtByProfile[normalizedNewName] = meta.updatedAtByProfile[normalizedOldName]
+            meta.updatedAtByProfile[normalizedOldName] = nil
+        end
+    end
+
+    if type(profileStore.charSettings) == "table" then
+        for charKey, assignedProfile in pairs(profileStore.charSettings) do
+            if assignedProfile == normalizedOldName then
+                profileStore.charSettings[charKey] = normalizedNewName
+            end
+        end
+    end
+
+    self:TouchProfileMetadata(normalizedNewName, false)
+    self:RefreshProfileState()
+    return true, normalizedNewName
+end
+
+function AuralinVP:DeleteProfile(profileName)
+    if self.EnsureProfileStorage then
+        self:EnsureProfileStorage()
+    end
+
+    local normalizedProfileName, errorMessage = self:ValidateProfileName(profileName)
+    if not normalizedProfileName then
+        return false, errorMessage
+    end
+
+    if self:IsDefaultProfile(normalizedProfileName) then
+        return false, "Cannot delete the '" .. Constants.DEFAULT_PROFILE_NAME .. "' profile."
+    end
+
+    if self:GetActiveProfileName() == normalizedProfileName then
+        return false, "Cannot delete the active profile '" .. normalizedProfileName .. "'."
+    end
+
+    local profileStore = self:GetProfileStorage()
+    if type(profileStore) ~= "table" or type(profileStore.profiles) ~= "table" then
+        return false, "Cannot delete profile; profile storage is unavailable."
+    end
+
+    if not profileStore.profiles[normalizedProfileName] then
+        return false, "Cannot delete profile; profile does not exist: " .. tostring(normalizedProfileName)
+    end
+
+    profileStore.profiles[normalizedProfileName] = nil
+
+    local meta = self:GetProfileMeta()
+    if meta then
+        meta.createdAtByProfile[normalizedProfileName] = nil
+        meta.updatedAtByProfile[normalizedProfileName] = nil
+    end
+
+    local reassignedCount = 0
+    profileStore.charSettings = profileStore.charSettings or {}
+    for charKey, assignedProfile in pairs(profileStore.charSettings) do
+        if assignedProfile == normalizedProfileName then
+            profileStore.charSettings[charKey] = Constants.DEFAULT_PROFILE_NAME
+            reassignedCount = reassignedCount + 1
+        end
+    end
+
+    self:RefreshProfileState()
+    return true, reassignedCount
+end
+
+function AuralinVP:ResetProfile(profileName)
+    if self.EnsureProfileStorage then
+        self:EnsureProfileStorage()
+    end
+
+    local normalizedProfileName, errorMessage = self:ValidateProfileName(profileName)
+    if not normalizedProfileName then
+        return false, errorMessage
+    end
+
+    local profileStore = self:GetProfileStorage()
+    if type(profileStore) ~= "table" or type(profileStore.profiles) ~= "table" then
+        return false, "Cannot reset profile; profile storage is unavailable."
+    end
+
+    if not profileStore.profiles[normalizedProfileName] then
+        return false, "Cannot reset profile; profile does not exist: " .. tostring(normalizedProfileName)
+    end
+
+    profileStore.profiles[normalizedProfileName] = CopyProfileSettings(nil)
+    self:TouchProfileMetadata(normalizedProfileName, false)
+
+    if self:GetActiveProfileName() == normalizedProfileName then
+        self:RefreshProfileState()
+    end
+
+    return true, normalizedProfileName
 end
 --@end-alpha@
 
@@ -338,6 +738,29 @@ StaticPopupDialogs["AURALIN_VIEWPORT_UNSAVED_CHANGES"] = StaticPopupDialogs["AUR
         AuralinVP:RestoreDummyFramesToStoredSettings()
         AuralinVP:RestoreWorldFrame(settings.left, settings.top, settings.right, settings.bottom)
         AuralinVP:DestroyDummyFrames()
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+StaticPopupDialogs["AURALIN_VIEWPORT_DELETE_PROFILE_CONFIRM"] = StaticPopupDialogs["AURALIN_VIEWPORT_DELETE_PROFILE_CONFIRM"] or {
+    text = "Delete profile '%s'?\nCharacters using it will be reassigned to Default.",
+    button1 = DELETE,
+    button2 = CANCEL,
+    OnAccept = function(_, profileName)
+        if not AuralinVP.DeleteProfile then
+            return
+        end
+
+        local success, result = AuralinVP:DeleteProfile(profileName)
+        if not success then
+            AuralinVP:Print(result or "Unable to delete profile.")
+            return
+        end
+
+        AuralinVP:Print("Deleted profile '" .. tostring(profileName) .. "'. Reassigned " .. tostring(result or 0) .. " character(s) to Default.")
     end,
     timeout = 0,
     whileDead = true,

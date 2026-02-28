@@ -135,6 +135,10 @@ function AuralinVP:UpdateProfileLabel()
     if self.profileLabel then
         self.profileLabel:SetText("Select or create a profile for this\ncharacter:\n\nCurrent Profile: " .. currentProfileName .. ".")
     end
+
+    if self.UpdateProfileActionButtons then
+        self:UpdateProfileActionButtons()
+    end
 end
 
 AuralinVP.profileLabel = AuralinVP.MainMenuFrame:CreateFontString(nil, "OVERLAY")
@@ -265,7 +269,7 @@ else
     createProfileEditBox:SetPoint("TOPLEFT", AuralinVP.profileLabel, "BOTTOMLEFT", 0, -20)
 end
 createProfileEditBox:SetAutoFocus(false)
-createProfileEditBox:SetMaxLetters(32)
+createProfileEditBox:SetMaxLetters(Constants.MAX_PROFILE_NAME_LENGTH)
 
 local createProfileButton = CreateFrame("Button", "AuralinVP_CreateProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
 createProfileButton:SetSize(80, 22)
@@ -283,25 +287,54 @@ createProfileButton:SetScript("OnClick", function()
         return
     end
 
-    if Auralin_Viewport_Profiles.profiles[newProfileName] then
-        AuralinVP:Print("Profile '" .. newProfileName .. "' already exists.")
+    local created, createResult = AuralinVP:CreateProfile(newProfileName)
+    if not created then
+        AuralinVP:Print(createResult or "Unable to create profile.")
         return
     end
 
-    local currentSettings = AuralinVP:GetStoredSettings()
-    Auralin_Viewport_Profiles.profiles[newProfileName] = {
-        top = currentSettings.top,
-        left = currentSettings.left,
-        right = currentSettings.right,
-        bottom = currentSettings.bottom,
-    }
+    local selected, setResult = AuralinVP:SetActiveProfile(createResult)
+    if not selected then
+        AuralinVP:Print(setResult or "Profile created but could not be activated.")
+    end
 
-    AuralinVP:SetActiveProfile(newProfileName)
     if AuralinVP.RefreshProfileDropDown then
         AuralinVP:RefreshProfileDropDown()
     end
     createProfileEditBox:SetText("")
 end)
+
+local deleteProfileButton = CreateFrame("Button", "AuralinVP_DeleteProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
+deleteProfileButton:SetSize(80, 22)
+deleteProfileButton:SetPoint("LEFT", createProfileButton, "RIGHT", 5, 0)
+deleteProfileButton:SetText("Delete")
+deleteProfileButton:SetScript("OnClick", function()
+    local activeProfileName = AuralinVP:GetActiveProfileName()
+    if not activeProfileName then
+        AuralinVP:Print("No active profile is assigned.")
+        return
+    end
+
+    if AuralinVP:IsDefaultProfile(activeProfileName) then
+        AuralinVP:Print("Cannot delete the '" .. Constants.DEFAULT_PROFILE_NAME .. "' profile.")
+        return
+    end
+
+    StaticPopup_Show("AURALIN_VIEWPORT_DELETE_PROFILE_CONFIRM", activeProfileName, nil, activeProfileName)
+end)
+
+function AuralinVP:UpdateProfileActionButtons()
+    if not deleteProfileButton then
+        return
+    end
+
+    local activeProfileName = self:GetActiveProfileName()
+    if activeProfileName and not self:IsDefaultProfile(activeProfileName) then
+        deleteProfileButton:Enable()
+    else
+        deleteProfileButton:Disable()
+    end
+end
 
 createProfileEditBox:SetScript("OnEnterPressed", function(self)
     createProfileButton:Click()
