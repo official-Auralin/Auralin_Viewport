@@ -323,16 +323,58 @@ deleteProfileButton:SetScript("OnClick", function()
     StaticPopup_Show("AURALIN_VIEWPORT_DELETE_PROFILE_CONFIRM", activeProfileName, nil, activeProfileName)
 end)
 
+local copyProfileButton = CreateFrame("Button", "AuralinVP_CopyProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
+copyProfileButton:SetSize(62, 22)
+copyProfileButton:SetPoint("TOPLEFT", createProfileButton, "BOTTOMLEFT", 0, -4)
+copyProfileButton:SetText("Copy")
+copyProfileButton:SetScript("OnClick", function()
+    local activeProfileName = AuralinVP:GetActiveProfileName()
+    if not activeProfileName then
+        AuralinVP:Print("No active profile is assigned.")
+        return
+    end
+
+    StaticPopup_Show("AURALIN_VIEWPORT_COPY_PROFILE_CONFIRM", activeProfileName, nil, activeProfileName)
+end)
+
+local resetProfileButton = CreateFrame("Button", "AuralinVP_ResetProfileButton", AuralinVP.MainMenuFrame, "UIPanelButtonTemplate")
+resetProfileButton:SetSize(62, 22)
+resetProfileButton:SetPoint("TOPRIGHT", deleteProfileButton, "BOTTOMRIGHT", 0, -4)
+resetProfileButton:SetText("Reset")
+resetProfileButton:SetScript("OnClick", function()
+    local activeProfileName = AuralinVP:GetActiveProfileName()
+    if not activeProfileName then
+        AuralinVP:Print("No active profile is assigned.")
+        return
+    end
+
+    StaticPopup_Show("AURALIN_VIEWPORT_RESET_PROFILE_CONFIRM", activeProfileName, nil, activeProfileName)
+end)
+
 function AuralinVP:UpdateProfileActionButtons()
-    if not deleteProfileButton then
+    if not deleteProfileButton or not copyProfileButton or not resetProfileButton then
         return
     end
 
     local activeProfileName = self:GetActiveProfileName()
+    local profileCount = #self:GetAvailableProfiles()
+
     if activeProfileName and not self:IsDefaultProfile(activeProfileName) then
         deleteProfileButton:Enable()
     else
         deleteProfileButton:Disable()
+    end
+
+    if activeProfileName and profileCount > 1 then
+        copyProfileButton:Enable()
+    else
+        copyProfileButton:Disable()
+    end
+
+    if activeProfileName then
+        resetProfileButton:Enable()
+    else
+        resetProfileButton:Disable()
     end
 end
 
